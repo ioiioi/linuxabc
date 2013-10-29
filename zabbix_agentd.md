@@ -67,10 +67,12 @@ OpenBSD4.9的port里面有zabbix_agent-1.8.3，直接通过`pkg_add -i zabbix-ag
 
 * 测试是否正常启动
 
-    # ps aux | grep zabbix
-    # netstat -an | grep 10050
+```bash
+# ps aux | grep zabbix
+# netstat -an | grep 10050
+```
 
 * 从服务器端测试是否可以正常工作
 
-    zabbix server# zabbix_get -s <zabbix_agent ip> -k "system.uname"
+`zabbix server# zabbix_get -s <zabbix_agent ip> -k "system.uname"`
  
