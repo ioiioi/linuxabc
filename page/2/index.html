@@ -1,0 +1,1145 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta charset="utf-8">
+  
+  <title>Page 2 | linuxabc</title>
+  <meta name="author" content="alfie chan">
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+  
+  <meta property="og:site_name" content="linuxabc"/>
+
+  
+    <meta property="og:image" content="undefined"/>
+  
+
+  <link href="/favicon.png" rel="icon">
+  <link rel="alternate" href="/atom.xml" title="linuxabc" type="application/atom+xml">
+  <link rel="stylesheet" href="/css/style.css" media="screen" type="text/css">
+  <!--[if lt IE 9]><script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script><![endif]-->
+  
+</head>
+
+
+<body>
+  <header id="header" class="inner"><div class="alignleft">
+  <h1><a href="/">linuxabc</a></h1>
+  <h2><a href="/">focus on security, network management and embeded OS</a></h2>
+</div>
+<nav id="main-nav" class="alignright">
+  <ul>
+    
+      <li><a href="/">Home</a></li>
+    
+      <li><a href="/archives">Archives</a></li>
+    
+  </ul>
+  <div class="clearfix"></div>
+</nav>
+<div class="clearfix"></div></header>
+  <div id="content" class="inner">
+    <div id="main-col" class="alignleft"><div id="wrapper">
+  <article class="post">
+  
+  <div class="post-content">
+    <header>
+      
+        <div class="icon"></div>
+        <time datetime="2013-02-21T15:57:00.000Z"><a href="/2013/02/21/2013-02-21-seafile-service/">2013-02-21</a></time>
+      
+      
+  
+    <h1 class="title"><a href="/2013/02/21/2013-02-21-seafile-service/">seafile服务</a></h1>
+  
+
+    </header>
+    <div class="entry">
+      
+        <p>seafile是一个非常好用的，适合于小团队的文件共享服务软件。同时，它还是一款国内的开源软件，难得可贵。这两天我花了一些时间架设seafile服务，记录下来备用。<br>{.class info}</p>
+<h1>seafile介绍</h1>
+<p><strong>组件</strong></p>
+<ul>
+<li>ccnet：网络服务</li>
+<li>seafile server：负责数据访问</li>
+<li>seahub：网站界面，供用户管理自己在服务器上的数据和账户信息</li>
+<li>HttpServer: 负责直接从网站上下载和上传文件</li>
+<li>controller: 负责监控和重启上述部件</li>
+</ul>
+<p><strong>seafile环境</strong></p>
+<img src="http://dl.dropbox.com/u/74911209/octopress/2013-02-26_seafile-topology.jpg" class="center " title="seafile组网示意图" alt="seafile组网示意图">
+
+
+<p>如图示，seafile服务器位于防火墙之后，需要在防火墙做好端口映射。</p>
+<h1>下载</h1>
+<p>我用的是中国移动的宽带，无法通过官网的下载链接直接下载。必须fanqiang到<a href="https://code.google.com/p/seafile/downloads/list手工下载，然后再通过winscp传送到linux服务器上，破费劲。" target="_blank">https://code.google.com/p/seafile/downloads/list手工下载，然后再通过winscp传送到linux服务器上，破费劲。</a></p>
+<p>最新版本是<code>seafile-server_1.7.0_i386.tar.gz</code>。</p>
+<h1>安装</h1>
+<p>服务端需安装在linux上，我的选择是debian 6 32bit。</p>
+<p><strong>准备存储</strong></p>
+<p>事先安装好nfs client，然后挂载NFS：</p>
+<figure class="highlight lang-bash"><pre><span class="comment"># mkdir -p /mnt/seafile</span>
+<span class="comment"># echo "192.168.55.120:/tank/documents/seafile  /mnt/seafile  nfs  defaults  0 1" &gt;&gt; /etc/fstab</span>
+<span class="comment"># mount /mnt/seafile</span>
+</pre></figure>
+
+<p><strong>准备运行环境</strong></p>
+<figure class="highlight lang-bash"><pre><span class="comment"># aptitude update</span>
+<span class="comment"># aptitude install python2.6 python-setuptools python-simplejson python-imaging sqlite3</span>
+</pre></figure>
+
+<p><strong>安装</strong></p>
+<figure class="highlight lang-bash"><pre><span class="comment"># check the system's arch</span>
+uname -m      
+
+<span class="comment"># 创建seafile根目录，源文件将解压到该根目录下</span>
+mkdir /usr/local/src/seafile
+
+tar -C /usr/local/src/seafile -zxvf seafile-server_1.7.0_i386.tar.gz
+</pre></figure>
+
+<h1>配置</h1>
+<figure class="highlight lang-bash"><pre><span class="comment"># cd /usr/local/src/seafile-server-*</span>
+<span class="comment"># ./setup-seafile.sh</span>
+</pre></figure>
+
+<p>配置参数如下：</p>
+<p>|—-<br>|参数|说明|<br>|:-|:-|<br>|seafile server name|seafile服务器的名字，3~15 个字符，可用英文字母，数字，下划线|<br>|seafile server ip or domain|seafile服务器的IP地址或者域名。客户端将通过这个IP或者域名来访问Seafile服务。需要注意的是，在本例中，该IP地址应设为防火墙的互联网IP|<br>|ccnet server port|默认：10001|<br>|seafile data dir|seafile数据存放目录，默认是./seafile/seafile-data，建议放在一个NFS服务器中，方便日后的扩容和维护。|<br>|seafile server port|seafile服务器使用的TCP端口，默认为12001|<br>|seafile httpserver port|seafile httpserver使用的TCP端口，默认为8082|<br>|seahub admin email|sehaub管理员的帐户。该帐号仅是管理员帐号，用于发送邮件通知的email帐号需在seafile.conf中进行配置。|<br>|seahub admin password|seahub管理员的密码|<br>|—-<br>{: class=“datalist” }  </p>
+<p>seafile的配置文件是分布式的，不同组件的配置文件单独分开，不利于维护。</p>
+<h1>运行</h1>
+<figure class="highlight"><pre>./seafile.sh <span class="operator"><span class="keyword">start</span>
+./seahub.sh <span class="keyword">start</span>
+假如seahub的端口不是默认的<span class="number">8000</span>，则
+./seahub.sh <span class="keyword">start</span> &lt;new_port&gt;
+</pre></figure>
+
+<h1>停止</h1>
+<figure class="highlight lang-bash"><pre><span class="comment"># ./seafile.sh stop</span>
+<span class="comment"># ./seahub.sh stop</span>
+</pre></figure>
+
+<h1>重启</h1>
+<figure class="highlight"><pre><span class="preprocessor"># ./seafile.sh restart</span>
+<span class="preprocessor"># ./seahub.sh restart</span>
+
+; 假如seahub的端口不是默认的<span class="number">8000</span>，则
+
+<span class="preprocessor"># ./seahub.sh restart &lt;new_port&gt;</span>
+</pre></figure>
+
+<h1>升级</h1>
+<p>由于seafile的开发非常活跃，新版本层出不穷，因而经常需要升级。</p>
+<p>升级前需先中止seahub和seafile进程：</p>
+<figure class="highlight lang-bash"><pre><span class="comment"># ./seahub.sh stop</span>
+<span class="comment"># ./seafile.sh stop</span>
+</pre></figure>
+
+<p>新下载的版本也一并解压到seafile的根目录下，在本文中指的是<code>/usr/local/src/seafile</code>，读者也可以自行选择其它目录。最终的目录结构如下：</p>
+<figure class="highlight lang-bash"><pre>/usr/local/src
+   -- seafile-server-1.7.0
+   -- seafile-server-1.4.5
+   -- ccnet
+   -- seafile-data
+</pre></figure>
+
+<p><strong>小版本升级</strong></p>
+<p>指的是从1.6.0升级到1.6.1。</p>
+<figure class="highlight"><pre><span class="comment">cd</span> <span class="comment">/usr/local/src/seafile/seafile</span>-<span class="comment">server</span>-<span class="comment">1</span>.<span class="comment">3</span>.<span class="comment">1/seahub/media</span>
+<span class="comment">cp</span> <span class="literal">-</span><span class="comment">rf</span> <span class="comment">avatars/*</span> <span class="string">.</span><span class="string">.</span><span class="comment">/</span>.<span class="string">.</span><span class="comment">/</span>.<span class="string">.</span><span class="comment">/seahub</span>-<span class="comment">data/avatars/</span>
+<span class="comment">rm</span> <span class="literal">-</span><span class="comment">rf</span> <span class="comment">avatars</span>
+<span class="comment">ln</span> <span class="literal">-</span><span class="comment">s</span> <span class="string">.</span><span class="string">.</span><span class="comment">/</span>.<span class="string">.</span><span class="comment">/</span>.<span class="string">.</span><span class="comment">/seahub</span>-<span class="comment">data/avatars
+</pre></figure>
+
+<p><strong>连续版本升级</strong></p>
+<p>指的是从1.6.0升级到1.7.0。</p>
+<figure class="highlight"><pre><span class="title">cd</span> /usr/local/src/seafile-server1.<span class="number">7</span>.<span class="number">0</span>/upgrade
+./update_1.6_1.<span class="number">7</span>.sh
+</pre></figure>
+
+<p><strong>非连续版本升级</strong></p>
+<p>现在的版本为1.4，最新版本为1.7，需连续执行</p>
+<figure class="highlight"><pre><span class="comment">cd</span> <span class="comment">/usr/local/src/seafile</span>-<span class="comment">server1</span>.<span class="comment">7</span>.<span class="comment">0/upgrade</span>
+<span class="string">.</span><span class="comment">/update_1</span>.<span class="comment">4_1</span>.<span class="comment">5</span>.<span class="comment">sh</span>
+<span class="string">.</span><span class="comment">/update_1</span>.<span class="comment">5_1</span>.<span class="comment">6</span>.<span class="comment">sh</span>
+<span class="string">.</span><span class="comment">/update_1</span>.<span class="comment">6_1</span>.<span class="comment">7</span>.<span class="comment">sh
+</pre></figure>
+
+<p>升级完毕后启动seahub和seafile进程。</p>
+<h1>随机启动</h1>
+<p>seafile服务由多个进程共同协作而成，</p>
+<p>创建<code>/etc/init.d/seafile-server</code></p>
+<figure class="highlight"><pre>vim /etc/init.d/seafile-server
+
+<span class="shebang">#!/bin/sh</span>
+<span class="comment">### BEGIN INIT INFO</span>
+<span class="comment"># Provides:		seafile-server</span>
+<span class="comment"># Required-Start:	$all</span>
+<span class="comment"># Required-Stop:	$all</span>
+<span class="comment"># Should-Start:		$local_fs</span>
+<span class="comment"># Should-Stop:		$local_fs</span>
+<span class="comment"># Default-Start:	2 3 4 5</span>
+<span class="comment"># Default-Stop:		0 1 6</span>
+<span class="comment">### END INIT INFO</span>
+
+<span class="comment"># Change the value of "user" to your user name</span>
+user=root
+
+<span class="comment"># Change the value of "script_path" to your path of seafile installation</span>
+script_path=/usr/local/src/seafile/seafile-server-1.7.0
+
+sudo -u <span class="variable">${user}</span> <span class="variable">${script_path}</span>/seafile.sh start &gt; /tmp/seafile.init.log 2&gt;&1
+sudo -u <span class="variable">${user}</span> <span class="variable">${script_path}</span>/seahub.sh start &gt; /tmp/seahub.init.log 2&gt;&1
+</pre></figure>
+
+<p>以上脚本仅用于start，缺乏stop和restart的功能。</p>
+<p>更新</p>
+<figure class="highlight"><pre><span class="title">chmod</span> +x /etc/init.d/seafile-server
+<span class="title">update</span>-rc.d seafile-server defaults
+</pre></figure>
+
+<h1>tips</h1>
+<ul>
+<li><p>变更默认端口后，seafile可能会出现问题，这种情况下建议直接重装了事，包括服务端和客户端。</p>
+</li>
+<li><p>客户端的删除</p>
+<ul>
+<li>删除客户端之前请确保ccnet进程已杀掉，否则无法正常卸载。</li>
+<li>卸载完后，手工删除客户端的配置文件夹<code>C:\用户\&lt;用户名&gt;\ccnet</code></li>
+</ul>
+</li>
+<li><p>客户端的配置</p>
+<p>  客户端的配置文件为<code>C:\用户\&lt;用户名&gt;\ccnet\ccnet.conf</code>，假如服务端的变更了默认端口号，需在此进行变更。</p>
+</li>
+</ul>
+
+      
+    </div>
+    <footer>
+      
+        
+        
+      
+      <div class="clearfix"></div>
+    </footer>
+  </div>
+</article>
+
+
+
+  <article class="post">
+  
+  <div class="post-content">
+    <header>
+      
+        <div class="icon"></div>
+        <time datetime="2013-02-17T07:00:00.000Z"><a href="/2013/02/17/2013-02-17-about-illumos/">2013-02-17</a></time>
+      
+      
+  
+    <h1 class="title"><a href="/2013/02/17/2013-02-17-about-illumos/">ZFS的发展史</a></h1>
+  
+
+    </header>
+    <div class="entry">
+      
+        <p>两年前，我在选择产品实验室的存储服务器时对ZFS做了一些研究，发现ZFS及其衍生OS的发展很有趣，于是记下来作为大家茶余饭后的谈资。</p>
+<p>两年前，我需要一个容量为10T的存储，然而预算仅5万，采购硬件存储是不可能的了，请教google大神后发现了ZFS，这是ZFS第一次进入我的眼帘。再进一步了解后发现，ZFS（the last word in file system）的名字真是取对了，诚不欺我也。</p>
+<blockquote>
+<p>ZFS 文件系统是一个革命性的全新的文件系统，它从根本上改变了文件系统的管理方式，这个文件系统的特色和其带来的好处至今没有其他文件系统可以与之媲美，ZFS 被设计成强大的、可升级并易于管理的。<br>ZFS 用“存储池”的概念来管理物理存储空间。过去，文件系统都是构建在物理设备之上的。为了管理这些物理设备，并为数据提供冗余，“卷管理”的概念提供了一个单设备的映像。但是这种设计增加了复杂性，同时根本没法使文件系统向更高层次发展，因为文件系统不能跨越数据的物理位置。<br>ZFS 完全抛弃了“卷管理”，不再创建虚拟的卷，而是把所有设备集中到一个存储池中来进行管理！“存储池”描述了存储的物理特征（设备的布局，数据的冗余等等），并扮演一个能够创建文件系统的专门存储空间。从此，文件系统不再局限于单独的物理设备，而且文件系统还允许物理设备把他们自带的那些文件系统共享到这个“池”中。你也不再需要预先规划好文件系统的大小，因为文件系统可以在“池”的空间内自动的增大。当增加新的存贮介质时，所有“池”中的所有文件系统能立即使用新增的空间，而不需要而外的操作。在很多情况下，存储池扮演了一个虚拟内存。</p>
+</blockquote>
+<p>在这里我就偷下懒，直接引用了百度百科。</p>
+<p>ZFS就是一块瑰宝，被世人忽视，的发迹于solaris，sun公司曾于2005年开源了solaris，取名为opensolaris，那时其它开源社区已经有很多人垂涎于其ZFS，FreeBSD开发者也将其移植过来，Linux开发者则系统通过FUSE的方式引入，不过这两者在当时都不成气候，特别是linux的ZFS，由于跑在userland，其性能根本无法匹敌。<br>oracle收购了sun之后，又将solaris闭源了，开源社区对此大势抨击，我倒觉得无此必要，毕竟Oracle还有那么多工程师要养活，收购过来的资产不能变现，Oracle又不是慈善机构，凭什么要免费提供这么优质的软件？</p>
+<p>另一帮人则看到了商机，于是诞生了nexenta、smartos这样的产品，其中nexenta是debian+zfs的混种，本质上还是solaris，只不过用了apt方式管理软件包。这是第一个成功打入市场的产品，拥有ZFS全部的优秀品质，同时套了层漂亮的webui，也获得不少青睐，最要命的是可以免费使用，唯一的限制是18T。<br>另一个公司joynet，说起这个公司也不简单，node.js就出自该公司的手笔，它的光芒掩盖了joynet公司的另一项主营业务：VPS，joynet搜罗了不少sun的工程师，sun的工程师真是有骨气，他们为了信念而工作，拥有工程师气质的sun为我们奉献了solaris、dtrace、zfs、java、nfs等等脍炙人口的作品，可惜的是最终还是陨落了。不仅仅是为了面包，至少java的高司令便是如此，首席工程师于2010年将KVM移植到了illious，从此，SmartOS诞生了，它具有以下的优点：</p>
+<ul>
+<li>ZFS</li>
+<li>KVM</li>
+<li>container</li>
+<li>DTrace</li>
+</ul>
+<h2>ZFS on illumos</h2>
+<p>Oracle买了SUN之后，开源社区遭受了一系列的打击，MySQL社区四分五裂，OpenSolaris被无情的抛弃，OpenOffice核心开发人员纷纷出逃。最令人不齿的是，Oracle将redhat enterprise linux的logo改一下，就推出了oracle enterprise linux，见过无耻的，没见过这么无耻的！所以Oracle在开源社区眼中就是一坨屎，不过我觉得应该从另一个角度来看待问题，SUN公司拥有一群优秀的工程师，他们具有独特的浪漫主义情怀，给IT界带来了很多耳目一新的创新技术，但浪漫主义不能当饭吃，特别是SUN公司持续亏本，企业的根本目标就是盈利。一些无法带来收益的产品能砍则砍。最终还是会走向根本养活不了具有浪漫主义情怀福兮祸兮，SUN的工程师也纷纷出逃，最终流向了joyent、nexenta、OmniIT开发者信心尽失</p>
+<p>每一项技术仿佛都是为了VPS而生，因此SmartOS广告语是“”。<br>我尚未测试该OS的性能和稳定性，不过国内已经有一家创业型VPS用了该技术。<br>就像Linux一样，illumos以惊人的速度发展着，然而历史是如此的相似，Linux的发行版众多，illious社区也陷入的同样的怪圈，统一内核，发行版就由众多开源社区进行维护吧。<br>截至到目前为止，共有openindiana、smartos、omnios、nexenta等多种发行版，与linux不同的是，linux内核由linus一个人说了算，然而illous的开发则受到其赞助商的左右，翻开官网就会看到、joyent、nexenta是背后的。<br>linux和illous这两种不同的开发模式，孰优孰劣只能留待历史进行评判，不过它告诉了我们一个真理，没钱的活没人干，至少干不好。</p>
+<p>Joyent、nexenta、OmniTI等</p>
+<h2>ZFS on linux</h2>
+<p>ZFS在linux上衍生了多个版本，首个出现的是zfs-fuse，当时由于考虑到linux内核（GPL v2）和solaris（CDDL）所采用的开源协议有冲突，zfs无法直接作为内核模块存在，因此出现了zfs-fuse这种怪胎。由于zfs-fuse运行在userland下，速度极其缓慢，用户根本无法接受，因而zfs-fuse 0.7.0自2011年发布之后，就没有然后了。</p>
+<p>很快，linux界找到突破口，CDDL只是不允许ZFS以二进制内核模块发布而已，那就换成源代码方式发行，用户自行编译。这就是zfs on linux(<a href="http://zfsonlinux.org/)，官网的第一句话是“The" target="_blank">http://zfsonlinux.org/)，官网的第一句话是“The</a> native Linux kernel port of the ZFS filesystem”，目前的开发还算比较活跃，只是相比起illumos还是差了很多。</p>
+<p>不过我可以断定ZFS在linux上不会得到长足的发展，一方面，ZFS在illumos上的开发势头很猛，运行稳定，另一方面，linux上还有brtfs，一个同样具有野心的文件系统，它的重要功能跟ZFS非常相似，在Oracle的支持下也发展得如火如荼，如不出意外将发展成为linux版的ZFS。所以说ZFS在linux上不会有突破性的进展。我想不通的是，Oracle既支持zfs，又支持brtfs，不知用意何在。</p>
+<p>参考(<a href="http://etbe.coker.com.au/2012/04/17/zfs-btrfs-cheap-servers/" target="_blank">http://etbe.coker.com.au/2012/04/17/zfs-btrfs-cheap-servers/</a>)</p>
+<h2>ZFS on BSD</h2>
+<p>FreeBSD是首个移植zfs的BSD发行版，也许跟SUN的关系不错，ZFS on FreeBSD的性能和稳定性都不错，倒了9.1版已经可用于生产环境。甚至ixsystem公司在FreeBSD的基础上开发了FreeNAS，一个以ZFS为卖点的存储操作系统，它跟nexenta的区别是，FreeNAS是免费的，没有容量限制。熟悉FreeBSD的兄弟可以尝试使用FreeNAS。</p>
+<p>netbsd的zfs port自2009年开始，但是进展非常缓慢。netbsd社区2012年的筹款计划是6万，然而仅筹到1.5万，所以对于zfs on netbsd的未来就不必抱太大的希望了吧。虽然我很喜欢netbsd的简洁、干净。</p>
+<p>OpenBSD的BOSS说：“OpenBSD只关注安全和稳定性，其它的功能特性靠边站。”，所以OpenBSD中鼎鼎有名的pf到现在都还不支持多核，更何况zfs这种新兴的技术。so forget about it。</p>
+<p>“停，你以为你谁啊！说了那么多到底该选哪个？”有些观众估计已经开始脱鞋了。<br>说实在话，我也不知道该选哪个，这绝不是忽悠，因为目前的状态实在是太混乱了。我斗胆做了以下的选择建议：<br>纯粹的storage：solaris11，solaris11的ZFS版本已经发展到了v34，ilmous因为它才是ZFS的正宗，瘦死的骆驼比马大<br>云计算OS：smartos，该公司的另一项主营业务就是VPS，它不能拿命根子开玩笑<br>FreeNAS vs nexenta，如果真要在这两者之间做一个选择的话，那还是nexenta吧，毕竟</p>
+<p>它获得了很大的市场，而且依赖着illous这颗大树，FreeBSD的ZFS前景我觉得并不容乐观。<br>其它的，暂时还是忘了吧。</p>
+<p>或许只能用阴谋论才能很好地解释这种骨肉相残的行为。眼看着Oracle DB的市场份额不断地被MySQL瓜分，于是Oracle收购了sun（MySQL的母公司），并慢慢将MySQL推向闭源。你若爱它，便收购它，因为这是强强联手，你若恨它，也收购它，这样可以斩草除根。真他娘的狠！果然，用户纷纷逃离。然而，IT类网站的统计数据表明，用户并未拥抱Oracle DB这个白富美，而是走向了PostgreSQL、MariaDB、Percona这些矮穷挫。估计Oracle要哭了</p>
+
+      
+    </div>
+    <footer>
+      
+        
+        
+      
+      <div class="clearfix"></div>
+    </footer>
+  </div>
+</article>
+
+
+
+  <article class="post">
+  
+  <div class="post-content">
+    <header>
+      
+        <div class="icon"></div>
+        <time datetime="2013-01-01T07:00:00.000Z"><a href="/2013/01/01/2013-01-01-KVM-installation/">2013-01-1</a></time>
+      
+      
+  
+    <h1 class="title"><a href="/2013/01/01/2013-01-01-KVM-installation/">KVM安装</a></h1>
+  
+
+    </header>
+    <div class="entry">
+      
+        <p>node服务器硬件：</p>
+<ul>
+<li>2 * Intel Xeon（支持虚拟化）</li>
+<li>4 * broadcom千兆网卡</li>
+<li>2 * SAS 300G硬盘</li>
+</ul>
+<h1>安装</h1>
+<figure class="highlight"><pre><span class="preprocessor"># yum -y groupinstall Virtualization "Virtualization Client" "Virtualization Platform" "Virtualization Tools"</span>
+<span class="preprocessor"># yum -y install libguestfs-tools</span>
+</pre></figure>
+
+<p>这种安装方式还是不够简洁，可以尝试以下方式：</p>
+<figure class="highlight"><pre><span class="preprocessor"># yum -y install qemu-kvm libvirt python-virtinst bridge-utils</span>
+<span class="preprocessor"># modprobe kvm</span>
+<span class="preprocessor"># modprobe kvm_intel # if AMD, "kvm_amd"</span>
+<span class="preprocessor"># /etc/init.d/libvirtd start</span>
+</pre></figure>
+
+<p>安装完之后需重启相关服务：</p>
+<figure class="highlight"><pre><span class="preprocessor"># service libvirtd status</span>
+如果libvirtd没有启动，需要先启动messagebus和avahi-daemon
+<span class="preprocessor"># service messagebus start</span>
+<span class="preprocessor"># service avahi-daemon start</span>
+<span class="preprocessor"># service libvirtd start</span>
+</pre></figure>
+
+<p>至此，KVM的安装就结束了，非常简单。不过在生产环境中还需要考虑网络和存储，相对复杂一些，网络拓扑环境如下：</p>
+<h1>网络</h1>
+<ul>
+<li>eth0/eth1做成bond0，通过br0与业务交换机（huawei S5328-1）相连</li>
+<li>eth2/eth3做成bond1，通过br1与存储交换机（huawei S5328-2）相连</li>
+</ul>
+<p>以下是网络配置</p>
+<h2>配置网卡</h2>
+<figure class="highlight"><pre>[root<span class="variable">@RH2285</span>-<span class="number">4</span> network-scripts]<span class="comment"># cat ifcfg-eth2</span>
+<span class="constant">DEVICE</span>=<span class="string">"eth2"</span>
+<span class="constant">TYPE</span>=<span class="string">"Ethernet"</span>
+<span class="constant">BOOTPROTO</span>=<span class="string">"none"</span>
+<span class="constant">ONBOOT</span>=<span class="string">"yes"</span>
+<span class="constant">USERCTL</span>=<span class="string">"no"</span>
+<span class="constant">MASTER</span>=<span class="string">"bond1"</span>
+<span class="constant">SLAVE</span>=<span class="string">"yes"</span>
+<span class="constant">NM_CONTROLLED</span>=<span class="string">"no"</span>
+
+[root<span class="variable">@RH2285</span>-<span class="number">4</span> network-scripts]<span class="comment"># cat ifcfg-eth3</span>
+<span class="constant">DEVICE</span>=<span class="string">"eth3"</span>
+<span class="constant">TYPE</span>=<span class="string">"Ethernet"</span>
+<span class="constant">BOOTPROTO</span>=<span class="string">"none"</span>
+<span class="constant">ONBOOT</span>=<span class="string">"yes"</span>
+<span class="constant">USERCTL</span>=<span class="string">"no"</span>
+<span class="constant">MASTER</span>=<span class="string">"bond1"</span>
+<span class="constant">SLAVE</span>=<span class="string">"yes"</span>
+<span class="constant">NM_CONTROLLED</span>=<span class="string">"no"</span>
+</pre></figure>
+
+<h2>配置bonding</h2>
+<figure class="highlight"><pre>[root<span class="property">@RH2285</span>-<span class="number">4</span> network-scripts]<span class="comment"># cat /etc/modprobe.d/bonding.conf </span>
+alias bond1 bonding
+
+假如没有<span class="regexp">/etc/modprobe.d/</span>bonding.conf，就自己创建一个。
+
+[root<span class="property">@RH2285</span>-<span class="number">4</span> network-scripts]<span class="comment"># lsmod | grep bonding</span>
+bonding               <span class="number">127060</span>  <span class="number">0</span> 
+<span class="number">8021</span>q                  <span class="number">25058</span>  <span class="number">1</span> bonding
+ipv6                  <span class="number">322541</span>  <span class="number">78</span> bonding,ip6t_REJECT,nf_conntrack_ipv6,nf_defrag_ipv6
+
+假如bonding还没有加载，那就手工加载。
+
+<span class="comment"># modprobe bonding</span>
+
+[root<span class="property">@RH2285</span>-<span class="number">4</span> network-scripts]<span class="comment"># cat ifcfg-bond1</span>
+DEVICE=bond1
+BRIDGE=br1
+USERCTL=<span class="literal">no</span>
+BOOTPROTO=none
+ONBOOT=<span class="literal">yes</span>
+NM_CONTROLLED=<span class="literal">no</span>
+BONDING_OPTS=<span class="string">"mode=4 miimon=80"</span>
+</pre></figure>
+
+<h2>配置bridge</h2>
+<figure class="highlight"><pre>[root<span class="property">@RH2285</span>-<span class="number">4</span> network-scripts]<span class="comment"># cat ifcfg-br1</span>
+DEVICE=<span class="string">"br1"</span>
+TYPE=Bridge
+ONBOOT=<span class="literal">yes</span>
+BOOTPROTO=static
+IPADDR=<span class="number">192.168</span><span class="number">.55</span><span class="number">.232</span>
+NETMASK=<span class="number">255.255</span><span class="number">.255</span><span class="number">.0</span>
+NETWORK=<span class="number">192.168</span><span class="number">.55</span><span class="number">.0</span>
+NM_CONTROLLED=<span class="string">"no"</span>
+</pre></figure>
+
+<p>最后重启网络：</p>
+<figure class="highlight"><pre>[root<span class="variable">@RH2285</span>-<span class="number">4</span> network-scripts]<span class="comment"># service network restart</span>
+</pre></figure>
+
+<h2>检查</h2>
+<figure class="highlight"><pre>[root@<span class="class">RH2285</span>-<span class="number">4</span> network-scripts]# cat /proc/net/bonding/bond1
+<span class="class">Ethernet</span> <span class="class">Channel</span> <span class="class">Bonding</span> <span class="class">Driver</span>: v3<span class="number">.6</span><span class="number">.0</span> (<span class="class">September</span> <span class="number">26</span>, <span class="number">2009</span>)
+
+<span class="class">Bonding</span> <span class="class">Mode</span>: <span class="class">IEEE</span> <span class="number">802.3</span>ad <span class="class">Dynamic</span> link aggregation
+<span class="class">Transmit</span> <span class="class">Hash</span> <span class="class">Policy</span>: layer2 (<span class="number">0</span>)
+<span class="class">MII</span> <span class="class">Status</span>: up
+<span class="class">MII</span> <span class="class">Polling</span> <span class="class">Interval</span> (ms): <span class="number">80</span>
+<span class="class">Up</span> <span class="class">Delay</span> (ms): <span class="number">0</span>
+<span class="class">Down</span> <span class="class">Delay</span> (ms): <span class="number">0</span>
+
+<span class="number">802.3</span>ad info
+<span class="class">LACP</span> <span class="method">rate:</span> slow
+<span class="class">Aggregator</span> selection policy (ad_select): stable
+<span class="class">Active</span> <span class="class">Aggregator</span> <span class="class">Info</span>:
+        <span class="class">Aggregator</span> <span class="class">ID</span>: <span class="number">3</span>
+        <span class="class">Number</span> of <span class="method">ports:</span> <span class="number">2</span>
+        <span class="class">Actor</span> <span class="class">Key</span>: <span class="number">17</span>
+        <span class="class">Partner</span> <span class="class">Key</span>: <span class="number">305</span>
+        <span class="class">Partner</span> <span class="class">Mac</span> <span class="class">Address</span>: <span class="number">54</span>:<span class="number">89</span>:<span class="number">98</span>:<span class="number">73</span>:<span class="method">bb:</span><span class="number">07</span>
+
+<span class="class">Slave</span> <span class="class">Interface</span>: eth2
+<span class="class">MII</span> <span class="class">Status</span>: up
+<span class="class">Speed</span>: <span class="number">1000</span> <span class="class">Mbps</span>
+<span class="class">Duplex</span>: full
+<span class="class">Link</span> <span class="class">Failure</span> <span class="class">Count</span>: <span class="number">0</span>
+<span class="class">Permanent</span> <span class="class">HW</span> <span class="method">addr:</span> <span class="number">3</span><span class="method">c:</span><span class="method">d9:</span><span class="number">2</span><span class="method">b:</span><span class="method">fd:</span><span class="number">39</span>:f0
+<span class="class">Aggregator</span> <span class="class">ID</span>: <span class="number">3</span>
+<span class="class">Slave</span> queue <span class="class">ID</span>: <span class="number">0</span>
+
+<span class="class">Slave</span> <span class="class">Interface</span>: eth3
+<span class="class">MII</span> <span class="class">Status</span>: up
+<span class="class">Speed</span>: <span class="number">1000</span> <span class="class">Mbps</span>
+<span class="class">Duplex</span>: full
+<span class="class">Link</span> <span class="class">Failure</span> <span class="class">Count</span>: <span class="number">0</span>
+<span class="class">Permanent</span> <span class="class">HW</span> <span class="method">addr:</span> <span class="number">3</span><span class="method">c:</span><span class="method">d9:</span><span class="number">2</span><span class="method">b:</span><span class="method">fd:</span><span class="number">39</span>:f2
+<span class="class">Aggregator</span> <span class="class">ID</span>: <span class="number">3</span>
+<span class="class">Slave</span> queue <span class="class">ID</span>: <span class="number">0</span>
+[root@<span class="class">RH2285</span>-<span class="number">4</span> network-scripts]# ifconfig br1
+[root@<span class="class">RH2285</span>-<span class="number">4</span> network-scripts]# brctl show
+</pre></figure>
+
+<p>网络配置完成之后，可从其它机器ssh登录br1的ip地址，测试网络是否可正常工作。</p>
+<h1>存储</h1>
+<p>关于OS的选择<br>ZFS是一块瑰宝，发迹于solaris，sun公司曾与2005年开源了solaris，取名为opensolaris，那时已经有很多人垂涎于其ZFS，FreeBSD开发者也将其移植过来，Linux开发者则系统通过FUSE的方式引入，不过这两者在当时都不成气候，特别是linux的ZFS，由于跑在userland，其性能根本无法匹敌。<br>oracle收购了sun之后，又将solaris闭源了，开源社区对此大势抨击，我倒觉得无此必要，毕竟Oracle还有那么多工程师要养活，收购过来的资产不能变现，Oracle又不是慈善机构，凭什么要免费提供这么优质的软件？<br>另一帮人则看到了商机，于是诞生了nexenta、smartos这样的产品，其中nexenta是debian+zfs的混种，本质上还是solaris，只不过用了apt方式管理软件包。这是第一个成功打入市场的产品，拥有ZFS全部的优秀品质，同时套了层漂亮的webui，也获得不少青睐，最要命的是可以免费使用，唯一的限制是18T。<br>另一个公司joynet，说起这个公司也不简单，node.js就出自该公司的手笔，它的光芒掩盖了joynet公司的另一项主营业务：VPS，joynet搜罗了不少sun的工程师，sun的工程师真是有骨气，他们为了信念而工作，拥有工程师气质的sun为我们奉献了solaris、dtrace、zfs、java、nfs等等脍炙人口的作品，可惜的是最终还是陨落了。不仅仅是为了面包，至少java的高司令便是如此，首席工程师于2010年将KVM移植到了illious，从此，SmartOS诞生了，它具有以下的优点：<br>ZFS<br>KVM<br>container<br>DTrace<br>每一项技术仿佛都是为了VPS而生，因此SmartOS广告语是“”。<br>我尚未测试该OS的性能和稳定性，不过国内已经有一家创业型VPS用了该技术。<br>就像Linux一样，illious的以惊人的速度发展着，然而历史是如此的相似，Linux的发行版众多，illious社区也陷入的同样的怪圈，统一内核，发行版就由众多开源社区进行维护吧。<br>截至到目前为止，共有openindiana、smartos、omnios、nexenta等多种发行版，与linux不同的是，linux内核由linus一个人说了算，然而illous的开发则受到其赞助商的左右，翻开官网就会看到、joynet、nexenta是背后的。<br>linux和illous这两种不同的开发模式，孰优孰劣只能留待历史进行评判，不过它告诉了我们一个真理，没钱的活没人干，至少干不好。</p>
+<p>“STOP，你当你谁啊！说书的吗？说了那么多到底该选哪个？”观众估计已经开始拖鞋了。<br>说实在话，我也不知道该选哪个，这绝不是忽悠，因为目前的状态实在是太混乱了。我斗胆做了以下的选择建议：<br>纯粹的storage：solaris11，solaris11的ZFS版本已经发展到了v34，ilmous因为它才是ZFS的正宗，瘦死的骆驼比马大<br>云计算OS：smartos，该公司的另一项主营业务就是VPS，它不能拿命根子开玩笑<br>FreeNAS vs nexenta，如果真要在这两者之间做一个选择的话，那还是nexenta吧，毕竟</p>
+<p>它获得了很大的市场，而且依赖着illous这颗大树，FreeBSD的ZFS前景我觉得并不容乐观。<br>其它的，暂时还是忘了吧。</p>
+<p>遭受诟病</p>
+<p>可以选择本地存储，也可以选择外置存储，本例中选择nfs作为storage backend。</p>
+<p>how-to-make-usb-dos<br>制作USB DOS启动盘</p>
+<p>how-to-config-bios-of-supermicro-mobo<br>配置supermicro主板的bios</p>
+<p>服务器第一次启动后，按Del键，待LSI检测完毕后进入BIOS进行配置：</p>
+<p>1、启用VT-d，SRV-IO，VT-x等虚拟化选项<br>2、将SATA配置从IDE改成AHCI<br>3、将启动顺序设为：<br>USB<br>USB-CDROM<br>Harddisk</p>
+<p>how-to-flash-it-firmware-on-lsi2008</p>
+<p>supermicro X8DT6-F主板自带的SAS控制器是LSI 2008，出厂默认模式是IR，而ZFS需要的是IT，因此需要先将LSI 2008的firmware刷成IT模式。</p>
+<ul>
+<li>从supermirco网站下载<a href="ftp://ftp.supermicro.com/driver/SAS/LSI/2008/IT/Firmware/">LSI 2008的IT firmware</a></li>
+<li>将firmware解压到<a href="how-to-make-usb-dos">usb dos启动盘</a>的根目录下</li>
+<li>启动服务器，按“Del”键进入BIOS，<a href="how-to-config-bios-of-supermicro-mobo">修改相关配置</a>，在启动顺序中将“USB选项”置顶</li>
+<li>在dos提示符下执行<code>C:\&gt;SMC2008.bat</code></li>
+<li>最后将出现以下提示符</li>
+</ul>
+<figure class="highlight"><pre>Enter <span class="keyword">the</span> remaining <span class="number">9</span> digits <span class="keyword">for</span> <span class="keyword">the</span> sas address: <span class="number">004</span>DF3A00
+</pre></figure>
+
+<p>根据要求请输出SAS控制器的地址，提示：SAS控制器地址一般贴在主板正面，或是LSI板卡上。</p>
+<p>否则服务器重启后会出现以下提示：</p>
+<figure class="highlight"><pre><span class="title">SAS</span> address NOT program <span class="built_in">on</span> controller slot <span class="number">4</span>
+</pre></figure>
+
+<p>原因是：</p>
+<blockquote>
+<p>I too had the issue where the flash util refused to flash over the existing firmware.<br>I used the sas2flash -o -e 7 line posted in the comments and it worked. BUT it erased the WWN number from the card giving me an error every boot about the SAS address not being programmed.<br>SO DO NOT USE sas2flash -o -e 7. Instead use sas2flash -o -e 6. That will erase the flash but it won’t erase the manufacturing area which contains the WWN.<br>If you do erase the wwn. You’ll need to reenter it using sas2flash -o -sasadd (wwn number). Usually this number is on a sticker somewhere on the card or motherboard.<br>If you can’t find it. You can make up an 8 byte hex number. A WWN is like an ethernet mac address. Every card in the system needs to have a unique one.</p>
+</blockquote>
+<p>参考：<a href="http://www.servethehome.com/howto-flash-supermicro-x8si6f-lsi-sas-2008-controller-lsi-firmware/" target="_blank">http://www.servethehome.com/howto-flash-supermicro-x8si6f-lsi-sas-2008-controller-lsi-firmware/</a></p>
+<p>至此，LSI 2008完成了从IR到IT的转变。</p>
+<p>安装操作系统</p>
+<p>将USB DOS启动盘拔出，插上USB光驱，启动后插入solaris 10 u 10安装盘，选择3，进入solaris的安装阶段。<br>选择entire system，8个G，<br>在分区的时候，solaris默认会将整块硬盘安装操作系统，但是对于宝贵的SSD资源来说就太浪费了，因此将solaris分区缩小：<br>1、先删除solaris分区；<br>2、新建一个分区，分区格式为solaris，大小为20000M，即20G</p>
+<p>stmsboot -e<br>该命令将<br>Prtconf -v | less<br>查找:inquiry-serial-no<br>记录下所有的硬盘序列号</p>
+<p>安装存储操作系统<br>一、nexentastor CE 3.1.1</p>
+<p>准备工作<br>下载ISO</p>
+<p>刻录</p>
+<p>安装<br>安装过程详见：<br>需要注意的是，选择系统盘的时候，将整个系统盘作为一个syspool，不要安装在某个分区上。</p>
+<p>配置</p>
+<p>网络</p>
+<p>svcadm disable network/physical:nwam<br>svcadm enable network/physical:default</p>
+<p>一、确保所有网口没有被启用<br>ifconfig e1000g0 unplumb<br>ifconfig e1000g1 unplumb</p>
+<p>二、创建link-aggregation<br>dladm create-aggr -l e1000g0 -l e1000g1 interlink0</p>
+<p>三、启用端口汇聚<br>ifconfig plumb interlink0</p>
+<p>四、配置ip地址<br>ifconfig interlink0 192.168.33.11/24 broadcast + up</p>
+<p>五、配置JumboFrame<br>Dladm set-linkprop -p mtu=9000 aggr0<br>Dladm show-linkprop -p mtu</p>
+<p>说明：<br>假如之前配置了一个网卡，残留：/etc/hostname.e1000g0这样的文件，这时候需要将该文件更名为hostname.aggr0<br>Mv /etc/hostname.e1000g0 /etc/hostname.aggr0，否则重启后会出错，network/physical:default无法正常启动，出于maintance状态。</p>
+<p>默认路由<br>route -p add default 192.168.84.1</p>
+<p>DNS<br>cp /etc/nsswitch.dns /etc/nsswitch.conf<br>或者：<br>修改/etc/nsswitch.conf<br>ipnodes: files mdns<br>hosts:files mdns</p>
+<p>修改/etc/resolv.conf<br>添加dns服务器<br>Nameserver 8.8.8.8</p>
+<p>zfs<br>Syspool mirror<br>将磁盘分区信息复制到备用盘<br>/usr/sbin/prtvtoc /dev/rdsk/c0t50014EE100803078d0s2 | /usr/sbin/fmthard -s - /dev/rdsk/c0t50014EE10080334Ad0s2</p>
+<p>附着备用盘<br>zpool attach -f rpool c0t50014EE100803078d0s0 c0t50014EE10080334Ad0s0</p>
+<p>在备用盘上安装grub<br>installgrub -m /boot/grub/stage1 /boot/grub/stage2 /dev/rdsk/c0t50014EE10080334Ad0s0</p>
+<p>在bios中设置启动顺序，主盘为第一启动设备，副盘为第二启动设备。</p>
+<p>这样，即便主盘换掉，仍然可以通过备用盘启动。</p>
+<p>Zpool<br>Zpool create tank mirror disk1 disk2<br>Zpool add tank mirror disk3 disk3<br>Zpool add tank mirror disk5 disk6<br>….</p>
+<p>sLog（ZIL）和log<br>Zpool add tank log mirror disk7 disk8</p>
+<p>Zpool add tank cache disk 9<br>Zpool add tank cache disk 10</p>
+<p>创建文件系统和共享</p>
+<p>For XenServer SR</p>
+<p>1、创建NFS VHD pool</p>
+<h1>Zfs create tank/XenSrv-SR</h1>
+<p>共享</p>
+<p>2、创建NFS ISO pool</p>
+<h1>Zfs create tank/iso</h1>
+<p>共享</p>
+<p>将iso灌入该文件系统中，如果是windows，可以用hfs开启http共享，然后在nexenta中使用wget命令将iso文件下载到该文件系统中</p>
+<h1>安装solaris 11 text x86</h1>
+<h2>初始化配置</h2>
+<p>**帐号</p>
+<p>**ssh</p>
+<p>**</p>
+<h2>一、配置网络</h2>
+<h2>二、准备硬盘列表和位置图</h2>
+<p>1、抄下所有硬盘的wwn（印在硬盘正面）<br>2、运行<br>prtconf -v | less<br>查找wwn，记下对应的serial number<br>3、</p>
+<h2>三、创建tank zpool</h2>
+<figure class="highlight"><pre>root<span class="variable">@dsStorage</span><span class="symbol">:~</span><span class="comment"># zpool create tank mirror c0t50014EE0AD455A8Fd0 c0t50014EE0029B5CAAd0</span>
+root<span class="variable">@dsStorage</span><span class="symbol">:~</span><span class="comment"># zpool add tank mirror c0t50014EE0AD462C12d0 c0t50014EE0AD463639d0</span>
+root<span class="variable">@dsStorage</span><span class="symbol">:~</span><span class="comment"># zpool add tank mirror c0t50014EE0AD465EBEd0 c0t50014EE0AD463716d0</span>
+root<span class="variable">@dsStorage</span><span class="symbol">:~</span><span class="comment"># zpool add tank mirror c0t50014EE057F05F1Fd0 c0t50014EE0029B543Bd0</span>
+root<span class="variable">@dsStorage</span><span class="symbol">:~</span><span class="comment"># zpool add tank mirror c0t50014EE0029B486Dd0 c0t50014EE0AD463486d0</span>
+root<span class="variable">@dsStorage</span><span class="symbol">:~</span><span class="comment"># zpool add tank mirror c0t50014EE0029B523Fd0 c0t50014EE0AD4636F6d0</span>
+root<span class="variable">@dsStorage</span><span class="symbol">:~</span><span class="comment"># zpool add tank mirror c0t50014EE0AD463101d0 c0t50014EE057F07D4Ed0</span>
+root<span class="variable">@dsStorage</span><span class="symbol">:~</span><span class="comment"># zpool add tank mirror c0t50014EE0AD46346Fd0 c0t50014EE057F087C5d0</span>
+root<span class="variable">@dsStorage</span><span class="symbol">:~</span><span class="comment"># zpool add tank mirror c0t50014EE0029B4C86d0 c0t50014EE057F08506d0</span>
+root<span class="variable">@dsStorage</span><span class="symbol">:~</span><span class="comment"># zpool add tank log mirror c5t0d0 c5t1d0</span>
+root<span class="variable">@dsStorage</span><span class="symbol">:~</span><span class="comment"># zpool add tank cache c0t5001517A6BE5DA38d0</span>
+</pre></figure>
+
+<h2>创建zfs文件系统</h2>
+<p>下面初步拟定的文件系统结构：</p>
+<p>1、tank/iso<br>               /iso/linux<br>               /iso/windows<br>               /iso/BSD</p>
+<p>2、tank/VMs<br>               /VMs/VMware<br>               /VMs/OSS-XEN<br>               /VMs/XenSrv-XCP</p>
+<p>3、tank/VM-template<br>               /VM-template/Vmware<br>               /VM-template/OSS-XEN<br>               /VM-template/XenSrv-XCP<br>               /VM-template/KVM</p>
+<p>4、tank/software<br>               /software/windows<br>               /software/Linux<br>               /software/BSD</p>
+<figure class="highlight"><pre>root<span class="variable">@dsStorage</span><span class="symbol">:~</span><span class="comment"># zfs create tank/iso</span>
+root<span class="variable">@dsStorage</span><span class="symbol">:~</span><span class="comment"># zfs create tank/iso/linux</span>
+root<span class="variable">@dsStorage</span><span class="symbol">:~</span><span class="comment"># zfs create tank/iso/windows</span>
+root<span class="variable">@dsStorage</span><span class="symbol">:~</span><span class="comment"># zfs create tank/iso/bsd</span>
+root<span class="variable">@dsStorage</span><span class="symbol">:~</span><span class="comment"># zfs create tank/VMs</span>
+root<span class="variable">@dsStorage</span><span class="symbol">:~</span><span class="comment"># zfs create tank/VMs/VMware</span>
+root<span class="variable">@dsStorage</span><span class="symbol">:~</span><span class="comment"># zfs create tank/VMs/oss-xen</span>
+root<span class="variable">@dsStorage</span><span class="symbol">:~</span><span class="comment"># zfs create tank/VMs/xensrv-xcp</span>
+root<span class="variable">@dsStorage</span><span class="symbol">:~</span><span class="comment"># zfs create tank/VM-template</span>
+root<span class="variable">@dsStorage</span><span class="symbol">:~</span><span class="comment"># zfs create tank/VM-template/VMware</span>
+root<span class="variable">@dsStorage</span><span class="symbol">:~</span><span class="comment"># zfs create tank/VM-template/oss-xen</span>
+root<span class="variable">@dsStorage</span><span class="symbol">:~</span><span class="comment"># zfs create tank/VM-template/xensrv-xcp</span>
+root<span class="variable">@dsStorage</span><span class="symbol">:~</span><span class="comment"># zfs create tank/VM-template/kvm</span>
+root<span class="variable">@dsStorage</span><span class="symbol">:~</span><span class="comment"># zfs create tank/software</span>
+root<span class="variable">@dsStorage</span><span class="symbol">:~</span><span class="comment"># zfs create tank/software/windows</span>
+root<span class="variable">@dsStorage</span><span class="symbol">:~</span><span class="comment"># zfs create tank/software/linux</span>
+root<span class="variable">@dsStorage</span><span class="symbol">:~</span><span class="comment"># zfs create tank/software/bsd</span>
+</pre></figure>
+
+<h2>启用nfs共享</h2>
+<figure class="highlight"><pre>root<span class="variable">@dsStorage</span><span class="symbol">:~</span><span class="comment"># zfs set sharenfs=on tank/VMs/opennebula</span>
+root<span class="variable">@dsStorage</span><span class="symbol">:~</span><span class="comment"># zfs set share=name=tank_VMs_opennebula,path=/tank/VMs/opennebula,prot=nfs,anon=0,sec=sys,rw=* tank/VMs/opennebula</span>
+root<span class="variable">@dsStorage</span><span class="symbol">:~</span><span class="comment"># chmod 777 /tank/VMs/opennebula</span>
+</pre></figure>
+
+
+      
+    </div>
+    <footer>
+      
+        
+        
+      
+      <div class="clearfix"></div>
+    </footer>
+  </div>
+</article>
+
+
+
+  <article class="post">
+  
+  <div class="post-content">
+    <header>
+      
+        <div class="icon"></div>
+        <time datetime="2012-12-22T04:30:00.000Z"><a href="/2012/12/22/2012-12-22-upgrade-openbsd/">2012-12-22</a></time>
+      
+      
+  
+    <h1 class="title"><a href="/2012/12/22/2012-12-22-upgrade-openbsd/">升级OpenBSD</a></h1>
+  
+
+    </header>
+    <div class="entry">
+      
+        <p>我目前的两台防火墙是OpenBSD4.9，需要升级到5.2。由于OpenBSD不支持跨版本升级，因此需要采用4.9-&gt;5.0-&gt;5.1-&gt;5.2这种逐步升级的方式。</p>
+<p>下面步骤是官网推荐的upgrade by install kernel。</p>
+<pre><code><span class="number">1.</span> <span class="preprocessor"># mkdir /backup</span>
+<span class="number">2.</span> <span class="preprocessor"># mv /bsd.rd /backup/bsd.rd.50</span>
+<span class="number">3.</span> <span class="preprocessor"># wget http://ftp.jaist.ac.jp/pub/OpenBSD/5.2/i386/bsd.rd</span>
+<span class="number">4.</span> <span class="preprocessor"># shutdown -r now</span>
+<span class="number">5.</span> 在boot的提示符中输入
+&gt;bsd<span class="variable">.rd</span>
+<span class="number">6.</span> 选择(U)pgrade
+然后选择合适的sets，我只选择了
+bsd<span class="variable">.rd</span>
+bsd
+base<span class="variable">.tgz</span>
+comp52<span class="variable">.tgz</span>
+man52<span class="variable">.tgz</span>
+<span class="number">7.</span> <span class="preprocessor"># wget http://ftp.jaist.ac.jp/pub/OpenBSD/5.2/i386/etc52.tgz</span>
+<span class="number">8.</span> <span class="preprocessor"># sysmerge -x /backup/etc52.tgz</span>
+<span class="number">9.</span> <span class="preprocessor"># 最后是确认所有的配置文件是否正确</span>
+<span class="number">10.</span> <span class="preprocessor"># shutdown -r now</span></code></pre>
+
+      
+    </div>
+    <footer>
+      
+        
+        
+      
+      <div class="clearfix"></div>
+    </footer>
+  </div>
+</article>
+
+
+
+  <article class="post">
+  
+  <div class="post-content">
+    <header>
+      
+        <div class="icon"></div>
+        <time datetime="2012-10-03T15:00:00.000Z"><a href="/2012/10/03/2012-10-03-use-iscsi-as-vm-storage-backend/">2012-10-3</a></time>
+      
+      
+  
+    <h1 class="title"><a href="/2012/10/03/2012-10-03-use-iscsi-as-vm-storage-backend/">使用iSCSI作为VM的storage backend</a></h1>
+  
+
+    </header>
+    <div class="entry">
+      
+        <p>iSCSI作为VM的storage backend也很流行，原因是iSCSI协议非常适合于小文件的读写，而且其对硬件设备几乎没有什么要求，只要IP可达即可。</p>
+<p>在本文中，我们仍然以solaris11作为外置存储，不得不说，solaris11实在是太强悍了，ZFS，comstar，nfs都是存储必备的组件模块。</p>
+<h1>iSCSI server</h1>
+<p>iSCSI server安装在solaris11上，solaris11</p>
+<h1>iSCSI client</h1>
+<p>iSCSI client将安装在hypervisor上，本文以CentOS为例。</p>
+<h2>安装iSCSI client</h2>
+<p>[root@DL165-1 ~]# yum install iscsi-initiator-utils</p>
+<h2>配置iSCSI client</h2>
+<figure class="highlight"><pre>[root@DL165-<span class="number">1</span> ~]<span class="comment"># vim /etc/iscsi/iscsid.conf</span>
+<span class="keyword">...</span>
+node.session.auth.username = linuxabc
+node.session.auth.password = <span class="number">123456</span>
+discovery.sendtargets.auth.username = linuxabc
+discovery.sendtargets.auth.password = <span class="number">123456</span>
+<span class="keyword">...</span>
+</pre></figure>
+
+<h2>启动iSCSI服务</h2>
+<figure class="highlight"><pre>[root<span class="variable">@DL165</span>-<span class="number">1</span> ~]<span class="comment"># /etc/init.d/iscsi start</span>
+</pre></figure>
+
+<h2>连接到iSCSI server</h2>
+<figure class="highlight"><pre><span class="title">[</span><span class="comment">root@DL165</span>-<span class="comment">1</span> <span class="comment">~</span>]<span class="comment">#</span> <span class="comment">iscsiadm</span> <span class="literal">-</span><span class="comment">m</span> <span class="comment">discovery</span> <span class="literal">-</span><span class="comment">t</span> <span class="comment">sendtargets</span> <span class="literal">-</span><span class="comment">p</span> <span class="comment">192</span>.<span class="comment">168</span>.<span class="comment">55</span>.<span class="comment">120</span>
+<span class="title">[</span><span class="comment">root@DL165</span>-<span class="comment">1</span> <span class="comment">~</span>]<span class="comment">#</span> <span class="comment">iscsiadm</span> <span class="literal">-</span><span class="comment">m</span> <span class="comment">node</span> <span class="literal">-</span><span class="comment">T</span> <span class="comment">iqn</span>.<span class="comment">2010</span>-<span class="comment">06</span>.<span class="comment">xen</span>-<span class="comment">sanhead:xen</span>-<span class="comment">alfie</span> <span class="literal">-</span><span class="literal">-</span><span class="comment">login</span>
+<span class="title">[</span><span class="comment">root@DL165</span>-<span class="comment">1</span> <span class="comment">~</span>]<span class="comment">#</span> <span class="comment">/etc/init</span>.<span class="comment">d/iscsi</span> <span class="comment">restart
+</pre></figure>
+
+<p>在xen dom0中执行<code>fdisk -l</code>就会看到系统中多出了一个块设备/dev/sdc，那正是ZFS storage上的iSCSI target。</p>
+<figure class="highlight"><pre>[root@DL165-<span class="number">1</span> ~]<span class="comment"># fdisk -l</span>
+<span class="keyword">...</span>
+Disk /dev/sdc: <span class="number">8589</span> MB, <span class="number">8589934592</span> bytes
+<span class="number">64</span> heads, <span class="number">32</span> sectors/track, <span class="number">8192</span> cylinders
+Units = cylinders of <span class="number">2048</span> * <span class="number">512</span> = <span class="number">1048576</span> bytes
+
+Disk /dev/sdc doesn<span class="string">'t contain a valid partition table
+</pre></figure>
+
+<p>最后在xen dom0机器上把domU配置文件的disk一行改成：</p>
+<figure class="highlight"><pre><span class="setting">disk = <span class="value">[ <span class="string">"phy:/dev/sdc,xvda,w"</span> ]</span></span>
+</pre></figure>
+
+
+      
+    </div>
+    <footer>
+      
+        
+        
+      
+      <div class="clearfix"></div>
+    </footer>
+  </div>
+</article>
+
+
+
+  <article class="post">
+  
+  <div class="post-content">
+    <header>
+      
+        <div class="icon"></div>
+        <time datetime="2012-10-02T15:00:00.000Z"><a href="/2012/10/02/2012-10-02-upgrade-xen-and-centos/">2012-10-2</a></time>
+      
+      
+  
+    <h1 class="title"><a href="/2012/10/02/2012-10-02-upgrade-xen-and-centos/">CentOS5.6+xen3.4.3升级至CentOS5.8+xen3.4.4</a></h1>
+  
+
+    </header>
+    <div class="entry">
+      
+        <p>去年使用gitco repos成功地在CentOS5.6上安装了xen 3.4.3，已经稳定地运行了一年。前段时间CentOS和xen都升级了，于是便有了下文。</p>
+<h2>升级CentOS</h2>
+<p>在升级之前为了稳妥起见，先备份相关的配置文件。</p>
+<p>CentOS的升级很简单，就是<code>yum update</code>，然后重启，唯一需要注意的就是重启前需要调整<code>/boot/grub/menu.lst</code>中的启动顺序，因为升级后，CentOS默认的内核启动顺序是新版的kernel。</p>
+<p>验证一下</p>
+<figure class="highlight"><pre>[root<span class="variable">@DL165</span>-<span class="number">2</span> ~]<span class="comment"># cat /etc/redhat-release </span>
+<span class="constant">CentOS</span> release <span class="number">5.8</span> (<span class="constant">Final</span>)
+</pre></figure>
+
+<h2>升级xen</h2>
+<figure class="highlight"><pre>[root<span class="variable">@DL165</span>-<span class="number">2</span> ~]<span class="comment"># mv /etc/yum.repos.d/GITCO-xen3.4.3 backup</span>
+[root<span class="variable">@DL165</span>-<span class="number">2</span> ~]<span class="comment"># wget http://www.gitco.de/xen3.4.4</span>
+[root<span class="variable">@DL165</span>-<span class="number">2</span> ~]<span class="comment"># yum update xen</span>
+</pre></figure>
+
+<p>将从xen3.4.3升级至xen3.4.4，验证一下：</p>
+<figure class="highlight"><pre>[root@<span class="type">DL165</span>-<span class="number">2</span> ~]# xm info
+<span class="title">host</span>                   : <span class="type">DL165</span>-<span class="number">2</span>
+<span class="title">release</span>                : <span class="number">2.6</span><span class="number">.18</span>-<span class="number">308.13</span><span class="number">.1</span>.el5xen
+<span class="title">version</span>                : #<span class="number">1</span> <span class="type">SMP</span> <span class="type">Tue</span> <span class="type">Aug</span> <span class="number">21</span> <span class="number">17</span>:<span class="number">51</span>:<span class="number">21</span> <span class="type">EDT</span> <span class="number">2012</span>
+<span class="title">machine</span>                : x86_64
+<span class="title">nr_cpus</span>                : <span class="number">8</span>
+<span class="title">nr_nodes</span>               : <span class="number">1</span>
+<span class="title">cores_per_socket</span>       : <span class="number">4</span>
+<span class="title">threads_per_core</span>       : <span class="number">1</span>
+<span class="title">cpu_mhz</span>                : <span class="number">2693</span>
+<span class="title">hw_caps</span>                : <span class="number">178</span>bf3ff:efd3fbff:<span class="number">00000000</span>:<span class="number">00000310</span>:<span class="number">00802001</span>:<span class="number">00000000</span>:<span class="number">000037</span>ff:<span class="number">00000000</span>
+<span class="title">virt_caps</span>              : hvm
+<span class="title">total_memory</span>           : <span class="number">8191</span>
+<span class="title">free_memory</span>            : <span class="number">7579</span>
+<span class="title">node_to_cpu</span>            : node0:<span class="number">0</span>-<span class="number">7</span>
+<span class="title">node_to_memory</span>         : node0:<span class="number">7579</span>
+<span class="title">xen_major</span>              : <span class="number">3</span>
+<span class="title">xen_minor</span>              : <span class="number">4</span>
+<span class="title">xen_extra</span>              : <span class="number">.4</span>
+<span class="title">xen_caps</span>               : xen-<span class="number">3.0</span>-x86_64 xen-<span class="number">3.0</span>-x86_32p hvm-<span class="number">3.0</span>-x86_32 hvm-<span class="number">3.0</span>-x86_32p hvm-<span class="number">3.0</span>-x86_64 
+<span class="title">xen_scheduler</span>          : credit
+<span class="title">xen_pagesize</span>           : <span class="number">4096</span>
+<span class="title">platform_params</span>        : virt_start=<span class="number">0xffff800000000000</span>
+<span class="title">xen_changeset</span>          : unavailable
+<span class="title">cc_compiler</span>            : gcc version <span class="number">4.1</span><span class="number">.2</span> <span class="number">20080704</span> (<span class="type">Red</span> <span class="type">Hat</span> <span class="number">4.1</span><span class="number">.2</span>-<span class="number">52</span>)
+<span class="title">cc_compile_by</span>          : root
+<span class="title">cc_compile_domain</span>      : gitco.tld
+<span class="title">cc_compile_date</span>        : <span class="type">Mon</span> <span class="type">Jun</span> <span class="number">25</span> <span class="number">11</span>:<span class="number">29</span>:<span class="number">36</span> <span class="type">CEST</span> <span class="number">2012</span>
+
+<span class="title">xend_config_format</span>     : <span class="number">4</span>
+</pre></figure>
+
+
+      
+    </div>
+    <footer>
+      
+        
+        
+      
+      <div class="clearfix"></div>
+    </footer>
+  </div>
+</article>
+
+
+
+  <article class="post">
+  
+  <div class="post-content">
+    <header>
+      
+        <div class="icon"></div>
+        <time datetime="2012-07-23T04:30:00.000Z"><a href="/2012/07/23/2012-07-23-sinfor-tips/">2012-07-23</a></time>
+      
+      
+  
+    <h1 class="title"><a href="/2012/07/23/2012-07-23-sinfor-tips/">深信服M5100S tips</a></h1>
+  
+
+    </header>
+    <div class="entry">
+      
+        <p>在某个项目中用到了深信服的M5100-S SSL VPN设备，而网上关于深信服设备的资料非常匮乏，因此我根据平时的积累，整理了一些资料和tips，以飨读者。</p>
+<h2>SNMP</h2>
+<p><strong>community</strong><br>在深信服的设备使用文档中从未提及SNMP，然而实际上是有SNMP这个功能的，只是community不是传统的<code>public</code>，而是<code>sinfors</code>。</p>
+<p><strong>oid</strong></p>
+<figure class="highlight"><pre><span class="number">1.3</span><span class="number">.6</span><span class="number">.1</span><span class="number">.2</span><span class="number">.1</span><span class="number">.1</span><span class="number">.3</span><span class="number">.0</span>    <span class="preprocessor"># 设备运行时间（UPTIME），以1/100秒为单位。</span>
+<span class="number">1.3</span><span class="number">.6</span><span class="number">.1</span><span class="number">.2</span><span class="number">.1</span><span class="number">.1</span><span class="number">.1</span><span class="number">.0</span>    <span class="preprocessor"># 系统描述</span>
+<span class="number">1.3</span><span class="number">.6</span><span class="number">.1</span><span class="number">.2</span><span class="number">.1</span><span class="number">.1</span><span class="number">.5</span><span class="number">.0</span>    <span class="preprocessor"># 设备型号</span>
+<span class="number">1.3</span><span class="number">.6</span><span class="number">.1</span><span class="number">.2</span><span class="number">.1</span><span class="number">.1</span><span class="number">.4</span><span class="number">.0</span>    <span class="preprocessor"># 联系方式</span>
+<span class="number">1.3</span><span class="number">.6</span><span class="number">.1</span><span class="number">.2</span><span class="number">.1</span><span class="number">.1</span><span class="number">.6</span><span class="number">.0</span>    <span class="preprocessor"># 位置</span>
+<span class="number">1.3</span><span class="number">.6</span><span class="number">.1</span><span class="number">.2</span><span class="number">.1</span><span class="number">.2</span><span class="number">.1</span><span class="number">.0</span>    <span class="preprocessor"># 接口数量</span>
+<span class="number">1.3</span><span class="number">.6</span><span class="number">.1</span><span class="number">.2</span><span class="number">.1</span><span class="number">.2</span><span class="number">.2</span><span class="number">.1</span><span class="number">.2</span><span class="variable">.x</span>     <span class="preprocessor"># 接口描述信息（不同的x数值代表不同的接口，视设备回复而定）</span>
+<span class="number">1.3</span><span class="number">.6</span><span class="number">.1</span><span class="number">.2</span><span class="number">.1</span><span class="number">.2</span><span class="number">.2</span><span class="number">.1</span><span class="number">.10</span><span class="variable">.x</span>    <span class="preprocessor"># 接口接收总流量，以Byte为单位（不同的x数值代表不同的接口，视设备回复而定）</span>
+<span class="number">1.3</span><span class="number">.6</span><span class="number">.1</span><span class="number">.2</span><span class="number">.1</span><span class="number">.2</span><span class="number">.2</span><span class="number">.1</span><span class="number">.11</span><span class="variable">.x</span>    <span class="preprocessor"># 接口发送总流量，以Byte为单位（不同的x数值代表不同的接口，视设备回复而定）</span>
+<span class="number">1.3</span><span class="number">.6</span><span class="number">.1</span><span class="number">.2</span><span class="number">.1</span><span class="number">.2</span><span class="number">.2</span><span class="number">.1</span><span class="number">.8</span><span class="variable">.x</span>     <span class="preprocessor"># 接口接口状态（1-up，2-down）（不同的x数值代表不同的接口，视设备回复而定）</span>
+<span class="number">1.3</span><span class="number">.6</span><span class="number">.1</span><span class="number">.2</span><span class="number">.1</span><span class="number">.2</span><span class="number">.2</span><span class="number">.1</span><span class="number">.5</span><span class="variable">.x</span>     <span class="preprocessor"># 接口速率，以10bps为单位（不同的x数值代表不同的接口，视设备回复而定）</span>
+<span class="number">1.3</span><span class="number">.6</span><span class="number">.1</span><span class="number">.4</span><span class="number">.1</span><span class="number">.33333</span><span class="number">.1</span><span class="number">.1</span><span class="number">.1</span><span class="number">.0</span>     <span class="preprocessor"># CPU占用率，以百分比为单位。</span>
+<span class="number">1.3</span><span class="number">.6</span><span class="number">.1</span><span class="number">.4</span><span class="number">.1</span><span class="number">.33333</span><span class="number">.1</span><span class="number">.1</span><span class="number">.2</span><span class="number">.0</span>     <span class="preprocessor"># 设备类型(如M5000)</span>
+<span class="number">1.3</span><span class="number">.6</span><span class="number">.1</span><span class="number">.4</span><span class="number">.1</span><span class="number">.33333</span><span class="number">.1</span><span class="number">.1</span><span class="number">.3</span><span class="number">.0</span>     <span class="preprocessor"># 剩余内存，free+buffers，以KB为单位。</span>
+<span class="number">1.3</span><span class="number">.6</span><span class="number">.1</span><span class="number">.4</span><span class="number">.1</span><span class="number">.33333</span><span class="number">.1</span><span class="number">.2</span><span class="number">.1</span><span class="number">.0</span>     <span class="preprocessor"># VPN状态("vpn's status. 0 is stopped, 1 is normal, 2 is error" ) DLAN4.x版本因为lmdlan没有跟snmpagent程序通信，因此取不到正确的运行状态，会一直显示为1。</span>
+<span class="number">1.3</span><span class="number">.6</span><span class="number">.1</span><span class="number">.4</span><span class="number">.1</span><span class="number">.33333</span><span class="number">.1</span><span class="number">.2</span><span class="number">.2</span><span class="number">.0</span>     <span class="preprocessor"># VPN连接数，DLAN4.x版本因为lmdlan没有跟snmpagent程序通信，因此取不到正确的连接数，会一直显示为0。</span>
+<span class="number">1.3</span><span class="number">.6</span><span class="number">.1</span><span class="number">.4</span><span class="number">.1</span><span class="number">.33333</span><span class="number">.1</span><span class="number">.2</span><span class="number">.3</span><span class="number">.0</span>     <span class="preprocessor"># 软件版本(如M5000-Q-4.0-R1)</span>
+<span class="number">1.3</span><span class="number">.6</span><span class="number">.1</span><span class="number">.4</span><span class="number">.1</span><span class="number">.33333</span><span class="number">.1</span><span class="number">.3</span><span class="number">.1</span><span class="number">.0</span>     <span class="preprocessor"># SSL VPN状态（"ssl's status. 0 is stopped, 1 is normal, 2 is error"）</span>
+<span class="number">1.3</span><span class="number">.6</span><span class="number">.1</span><span class="number">.4</span><span class="number">.1</span><span class="number">.33333</span><span class="number">.1</span><span class="number">.3</span><span class="number">.2</span><span class="number">.0</span>     <span class="preprocessor"># SSL VPN连接数（即接入的用户数目）</span>
+</pre></figure>
+
+<p>实际上，在PRTG中，可以通过auto discovery扫描到端口带宽和uptime，至于CPU利用率、MEM剩余量则可以通过手工添加sensor。</p>
+<h2>CLI</h2>
+<p>M5100-S不支持命令行，但是作为一个网络工程师，对非CLI的设备心存反感，想ping一下互联设备，抓个包啥的都不行，好在深信服提供了一个update的工具，勉强可以使用。</p>
+<p>按F10将弹出如下窗口，支持的命令包括</p>
+<ol>
+<li>ifconfig</li>
+<li>netstat -rn</li>
+<li>ping</li>
+</ol>
+<p>从显示结果来看，sinfor的OS应该是在linux上进行裁剪的，因为假如是BSD，网卡名称就应该是fxp或xx等以驱动来命名。<br>既然如此，根据GPL协议，sinfor是否应该开放源代码呢？</p>
+<h2>dlan</h2>
+<p>只要有这个工具，是否意味着任何一台sinfor设备，只要用户不修改原始密码，就可以从公网任意访问xx了呢？那安全性从何谈起。</p>
+<h2>默认端口映射问题</h2>
+<p>M5100-S通过一条互联网专线访问外网，运营商分配给该客户的是112.180.254.33/29网段的IP地址，其中112.180.254.34是M5100-S的接口IP地址。默认情况下，这几个IP地址的443端口全部映射到该接口IP的443端口，也就是说，当客户分别访问这几个IP的443端口时，全部重定向至<a href="https://112.180.254.34。" target="_blank">https://112.180.254.34。</a></p>
+<p>难道，作为一个安全网络设备，不应该将：“非明确通过的即禁止”当作设计的首要原则吗？</p>
+<p>解决的办法：</p>
+<p>除了112.180.254.34这个IP外，明确禁止剩余IP的443端口映射。</p>
+
+      
+    </div>
+    <footer>
+      
+        
+        
+      
+      <div class="clearfix"></div>
+    </footer>
+  </div>
+</article>
+
+
+
+  <article class="post">
+  
+  <div class="post-content">
+    <header>
+      
+        <div class="icon"></div>
+        <time datetime="2012-07-15T04:30:00.000Z"><a href="/2012/07/15/2012-07-15-zabbix-tips/">2012-07-15</a></time>
+      
+      
+  
+    <h1 class="title"><a href="/2012/07/15/2012-07-15-zabbix-tips/">zabbix tips</a></h1>
+  
+
+    </header>
+    <div class="entry">
+      
+        <p>graph时间问题</p>
+<p>graph的时间显示比系统时间快了8个小时，可通过以下操作修复：</p>
+<ol>
+<li>调整系统时区</li>
+<li>hwclock —systohc</li>
+<li>调整php.ini时区</li>
+</ol>
+
+      
+    </div>
+    <footer>
+      
+        
+        
+      
+      <div class="clearfix"></div>
+    </footer>
+  </div>
+</article>
+
+
+
+  <article class="post">
+  
+  <div class="post-content">
+    <header>
+      
+        <div class="icon"></div>
+        <time datetime="2012-07-15T04:30:00.000Z"><a href="/2012/07/15/2012-07-23-serial-console-on-centos/">2012-07-15</a></time>
+      
+      
+  
+    <h1 class="title"><a href="/2012/07/15/2012-07-23-serial-console-on-centos/">在CentOS中使用Serial console</a></h1>
+  
+
+    </header>
+    <div class="entry">
+      
+        <p>手头上有一台HP ML110服务器，准备拿来当流控设备，安装完CentOS后发现机柜里面没有显示器，还得配置serial console，方便日后维护。</p>
+<p>在网上搜了很多文档，都说国外的文档质量高，可是就serial console这个问题也折腾了我大半天，因此记下来以免忘记。<br>
+      
+    </div>
+    <footer>
+      
+        
+          <div class="alignleft">
+            <a href="/2012/07/15/2012-07-23-serial-console-on-centos/#more" class="more-link">Read More</a>
+          </div>
+        
+        
+      
+      <div class="clearfix"></div>
+    </footer>
+  </div>
+</article>
+
+
+
+  <article class="post">
+  
+  <div class="post-content">
+    <header>
+      
+        <div class="icon"></div>
+        <time datetime="2012-07-04T04:30:00.000Z"><a href="/2012/07/04/2012-07-04-drop-packet-error-on-virtualbox-host/">2012-07-4</a></time>
+      
+      
+  
+    <h1 class="title"><a href="/2012/07/04/2012-07-04-drop-packet-error-on-virtualbox-host/">VirtualBox Host中drop packet错误</a></h1>
+  
+
+    </header>
+    <div class="entry">
+      
+        <p>前两天，我在VirtualBox的VM中安装了最新版的PRTG，结果发现SNMP traffic sensor的图像有断断续续的现象，同时伴随着异常返回值，这令我非常焦虑，因为cacti就是因为图像经常无缘无故出现异常而被我抛弃的，而PRTG这两年来一直位列我的十大兵器谱头名，可不能辜负了我对它的信任呀。<br>
+      
+    </div>
+    <footer>
+      
+        
+          <div class="alignleft">
+            <a href="/2012/07/04/2012-07-04-drop-packet-error-on-virtualbox-host/#more" class="more-link">Read More</a>
+          </div>
+        
+        
+      
+      <div class="clearfix"></div>
+    </footer>
+  </div>
+</article>
+
+
+
+
+<nav id="pagination">
+  
+    <a href="/" class="alignleft prev">Prev</a>
+  
+  
+    <a href="/page/3/" class="alignright next">Next</a>
+  
+  <div class="clearfix"></div>
+</nav></div></div>
+    <aside id="sidebar" class="alignright">
+  <div class="search">
+  <form action="//google.com/search" method="get" accept-charset="utf-8">
+    <input type="search" name="q" results="0" placeholder="Search">
+    <input type="hidden" name="q" value="site:ioiioi.github.com">
+  </form>
+</div>
+
+  
+<div class="widget tag">
+  <h3 class="title">Categories</h3>
+  <ul class="entry">
+  
+    <li><a href="/categories/RouterOS/MikroTik/">MikroTik</a><small>2</small></li>
+  
+    <li><a href="/categories/RouterBOARD/">RouterBOARD</a><small>1</small></li>
+  
+    <li><a href="/categories/RouterOS/">RouterOS</a><small>4</small></li>
+  
+    <li><a href="/categories/VPS/">VPS</a><small>1</small></li>
+  
+    <li><a href="/categories/openwrt/ap/">ap</a><small>1</small></li>
+  
+    <li><a href="/categories/confluence/">confluence</a><small>1</small></li>
+  
+    <li><a href="/categories/debian/">debian</a><small>12</small></li>
+  
+    <li><a href="/categories/dhcp/debian/">debian</a><small>1</small></li>
+  
+    <li><a href="/categories/dns/debian/">debian</a><small>1</small></li>
+  
+    <li><a href="/categories/ldap/debian/">debian</a><small>1</small></li>
+  
+    <li><a href="/categories/dhcp/">dhcp</a><small>1</small></li>
+  
+    <li><a href="/categories/dns/">dns</a><small>1</small></li>
+  
+    <li><a href="/categories/debian/domU/">domU</a><small>1</small></li>
+  
+    <li><a href="/categories/ubuntu/domU/">domU</a><small>1</small></li>
+  
+    <li><a href="/categories/embeded/">embeded</a><small>1</small></li>
+  
+    <li><a href="/categories/freebsd/">freebsd</a><small>1</small></li>
+  
+    <li><a href="/categories/illumos/">illumos</a><small>1</small></li>
+  
+    <li><a href="/categories/iptable/">iptable</a><small>1</small></li>
+  
+    <li><a href="/categories/virtualization/iscsi/">iscsi</a><small>1</small></li>
+  
+    <li><a href="/categories/xen/kvm/">kvm</a><small>1</small></li>
+  
+    <li><a href="/categories/kvm/">kvm</a><small>1</small></li>
+  
+    <li><a href="/categories/network/ldap/">ldap</a><small>1</small></li>
+  
+    <li><a href="/categories/ldap/">ldap</a><small>1</small></li>
+  
+    <li><a href="/categories/openwrt/linksys/">linksys</a><small>1</small></li>
+  
+    <li><a href="/categories/linux/">linux</a><small>1</small></li>
+  
+    <li><a href="/categories/linux/netbsd/">netbsd</a><small>1</small></li>
+  
+    <li><a href="/categories/openbsd/netmgmt/">netmgmt</a><small>1</small></li>
+  
+    <li><a href="/categories/openwrt/vpn/network/">network</a><small>1</small></li>
+  
+    <li><a href="/categories/debian/network/">network</a><small>2</small></li>
+  
+    <li><a href="/categories/network/">network</a><small>3</small></li>
+  
+    <li><a href="/categories/networking/">networking</a><small>1</small></li>
+  
+    <li><a href="/categories/nexenta/">nexenta</a><small>4</small></li>
+  
+    <li><a href="/categories/octopress/">octopress</a><small>3</small></li>
+  
+    <li><a href="/categories/debian/octopress/">octopress</a><small>2</small></li>
+  
+    <li><a href="/categories/openSUSE/">openSUSE</a><small>2</small></li>
+  
+    <li><a href="/categories/openbsd/">openbsd</a><small>8</small></li>
+  
+    <li><a href="/categories/openbsd openntpd/">openbsd openntpd</a><small>1</small></li>
+  
+    <li><a href="/categories/openwrt/">openwrt</a><small>4</small></li>
+  
+    <li><a href="/categories/others/">others</a><small>1</small></li>
+  
+    <li><a href="/categories/seafile/">seafile</a><small>1</small></li>
+  
+    <li><a href="/categories/seafile/services/">services</a><small>1</small></li>
+  
+    <li><a href="/categories/linux/netbsd/solaris/">solaris</a><small>1</small></li>
+  
+    <li><a href="/categories/RouterBOARD/solaris11/">solaris11</a><small>1</small></li>
+  
+    <li><a href="/categories/solaris11/">solaris11</a><small>1</small></li>
+  
+    <li><a href="/categories/tech/">tech</a><small>1</small></li>
+  
+    <li><a href="/categories/tech/tips/">tips</a><small>1</small></li>
+  
+    <li><a href="/categories/ubuntu/">ubuntu</a><small>1</small></li>
+  
+    <li><a href="/categories/vim/">vim</a><small>1</small></li>
+  
+    <li><a href="/categories/windows/virtualbox/">virtualbox</a><small>1</small></li>
+  
+    <li><a href="/categories/virtualbox/">virtualbox</a><small>5</small></li>
+  
+    <li><a href="/categories/debian/virtualbox/">virtualbox</a><small>1</small></li>
+  
+    <li><a href="/categories/virtualization/">virtualization</a><small>2</small></li>
+  
+    <li><a href="/categories/kvm/virtualization/">virtualization</a><small>1</small></li>
+  
+    <li><a href="/categories/openwrt/vpn/">vpn</a><small>1</small></li>
+  
+    <li><a href="/categories/vpn/">vpn</a><small>1</small></li>
+  
+    <li><a href="/categories/windows/">windows</a><small>1</small></li>
+  
+    <li><a href="/categories/virtualization/xen/">xen</a><small>1</small></li>
+  
+    <li><a href="/categories/ubuntu/domU/xen/">xen</a><small>1</small></li>
+  
+    <li><a href="/categories/xen/">xen</a><small>2</small></li>
+  
+    <li><a href="/categories/debian/domU/xen/">xen</a><small>1</small></li>
+  
+    <li><a href="/categories/illumos/zfs/">zfs</a><small>1</small></li>
+  
+    <li><a href="/categories/xen/kvm/虚拟化/">虚拟化</a><small>1</small></li>
+  
+  </ul>
+</div>
+
+
+  
+</aside>
+    <div class="clearfix"></div>
+  </div>
+  <footer id="footer" class="inner"><div class="alignleft">
+  
+  &copy; 2013 alfie chan
+  
+</div>
+<div class="clearfix"></div></footer>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
+<script src="/js/jquery.imagesloaded.min.js"></script>
+<script src="/js/gallery.js"></script>
+
+
+
+
+<link rel="stylesheet" href="/fancybox/jquery.fancybox.css" media="screen" type="text/css">
+<script src="/fancybox/jquery.fancybox.pack.js"></script>
+<script type="text/javascript">
+(function($){
+  $('.fancybox').fancybox();
+})(jQuery);
+</script>
+
+</body>
+</html>

@@ -1,0 +1,632 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta charset="utf-8">
+  
+  <title>openwrt | linuxabc</title>
+  <meta name="author" content="alfie chan">
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+  
+  <meta property="og:site_name" content="linuxabc"/>
+
+  
+    <meta property="og:image" content="undefined"/>
+  
+
+  <link href="/favicon.png" rel="icon">
+  <link rel="alternate" href="/atom.xml" title="linuxabc" type="application/atom+xml">
+  <link rel="stylesheet" href="/css/style.css" media="screen" type="text/css">
+  <!--[if lt IE 9]><script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script><![endif]-->
+  
+</head>
+
+
+<body>
+  <header id="header" class="inner"><div class="alignleft">
+  <h1><a href="/">linuxabc</a></h1>
+  <h2><a href="/">focus on security, network management and embeded OS</a></h2>
+</div>
+<nav id="main-nav" class="alignright">
+  <ul>
+    
+      <li><a href="/">Home</a></li>
+    
+      <li><a href="/archives">Archives</a></li>
+    
+  </ul>
+  <div class="clearfix"></div>
+</nav>
+<div class="clearfix"></div></header>
+  <div id="content" class="inner">
+    <div id="main-col" class="alignleft"><div id="wrapper">
+<h2 class="archive-title category">openwrt</h2>
+
+
+  
+    <article class="post">
+  
+  <div class="post-content">
+    <header>
+      
+        <div class="icon"></div>
+        <time datetime="2013-08-11T08:00:00.000Z"><a href="/2013/08/11/2013-09-23-shorewall-lite on openwrt/">2013-08-11</a></time>
+      
+      
+  
+    <h1 class="title"><a href="/2013/08/11/2013-09-23-shorewall-lite on openwrt/">openwrt's firewall</a></h1>
+  
+
+    </header>
+    <div class="entry">
+      
+        <p>安全是网络管理员永恒的话题，防火墙则是安全领域永恒的焦点。过去是，现在是，将来也是。</p>
+<p>openwrt基于linux，所以本章的主角就是linux防火墙。的经历了ipfwadm、ipchain到现在的netfilter/iptables，其中ipfwadm移植自bsd的ipfw，由alex con于1994年完成，ipchain是Rusty Russell的第一代作品，后来到了kernel 2.4年代，Rusty Russell在watchguard公司的资助下，开发出netfilter/iptable，不久便成了linux默认的防火墙。</p>
+<p>本章论述的就是netfilter/iptables，netfilter是一个linux kernel的安全框架，负责数据包的进出策略、转发、伪装（masq）和处理（mangling），iptables是netfilter的前端。用户通过iptables指导netfilter如何处理数据包。为了叙述的方便，本章将netfilter/iptables简称为iptables。</p>
+<p>本章所说的防火墙仅指第三、四层防火墙常见的类型:<br>stateless package filter，包过滤防火墙；<br>stateful package filter，状态监测的包过滤防火墙；<br>应用层防火墙</p>
+<p>其中包过滤是最简单的，早期路由器的ACL可以看作是包过滤防火墙，作用于IP层；<br>状态检测包过滤，最早提出该概念的是checkpoint，以色列与巴勒斯坦的战争间接催生了一大批优秀的安全产品，checkpoint是其中之一。<br>应用层防火墙，譬如apache的反向代理，squid代理，他们作用于第七层，具有目标精确的特点，缺点是效率低。</p>
+<p>iptables的数据包处理流程非常复杂，不符合本书的风格，因而按下不表，只讲简单的几个概念。复杂的东西留到需要时，读者再自行深入研究。</p>
+<p>netfilter</p>
+<p>几个简单的概念</p>
+<p>表、链和规则<br>netfilter由表（tables）组成，每个表含有多个链（chains），链中才是规则（rules），规则是iptables可以操作的最小颗粒，每个进出linux的数据包都会经过至少一条规则的检验。</p>
+<p>chains</p>
+<p>input<br>output<br>forward</p>
+<p>nat</p>
+<p>snat，也叫masquerading或伪装，<br>内网用户访问互联网时，需在外网接口处做NAT，将内网IP地址映射成外网IP地址，建立lan_ip:lan_port &lt;-&gt; wan_ip:wan_port的映射关系。</p>
+<p>dnat，也叫port forwarding<br>外网用户访问内网资源时，需要将内网资源与防火墙的外网</p>
+<p>dnat，也叫port forwarding或重定向，在iptables界用得最多的名字就是dnat，因而本文统一为dnat。</p>
+<p>本文介绍openwrt推荐的uci和shorewall-lite两种配置方式</p>
+<p>uci</p>
+<p>/etc/config/firewall</p>
+<p>zone是最小的控制颗粒，每个zone可以包含一个或多个接口。<br>转发、规则和重定向、伪装都是基于zone来进行的。</p>
+<p>上图中，/etc/config/network</p>
+<figure class="highlight lang-bash"><pre>config forward
+        
+<span class="comment">## 开放防火墙外网口的SSH、内网口的SSH和HTTP</span>
+
+config rule
+        option src              wan
+        option dest_port        22
+        option target           ACCEPT
+        option proto            tcp
+
+config rule
+        option src              lan
+        option dest_port        22
+        option target           ACCEPT
+        option proto            tcp
+
+config rule
+        option src              lan
+        option dest_port        80
+        option target           ACCEPT
+        option proto            tcp
+
+<span class="comment">## 内网访问外网时，snat至外网口IP</span>
+
+config redirect
+        option src              lan
+        option dest             wan
+        option src_dip          221.182.254.34
+        option target           SNAT
+
+外网访问内网web时，dnat至内网的192.168.44.3
+
+config redirect
+        option src       wan
+        option src_dport 80
+        option proto     tcp
+        option dest_ip   192.168.44.3
+</pre></figure>
+
+<p>最后，还需要<code>/etc/init.d/firewall restart</code>。</p>
+<p>uci配置方式要比iptables简单得多，非常适用于简单的家庭网络。然而在复杂的企业网中，uci就力不从心了，这时建议使用shorewall/shorewall-lite。</p>
+<p>shorewall是xx开发的一套脚本，致力于降低学习曲线，方便用户使用netfilter/iptables。</p>
+<p>举个简单例子：</p>
+<figure class="highlight lang-/etc/shorewall/rules"><pre><span class="title">ACCETP</span>      wan     <span class="variable">$FW</span>     tcp     <span class="number">22</span>
+ACCETP      lan     <span class="variable">$FW</span>     tcp     <span class="number">22</span>,<span class="number">80</span>
+</pre></figure>
+
+<p>就可以实现“开放防火墙外网口的SSH、内网口的SSH和HTTP”的功能。</p>
+<p>同样地，shorewall也引入了一些概念。</p>
+<p>params<br>interfaces<br>zones<br>policy<br>rules<br>nat<br>masq</p>
+<p>openwrt没有shorewall，只有shorewall-lite，shorewall-lite是shorewall的一个子集，shorewall可以独立运行在linux中，shorewall-lite必须依赖于shorewall才能正常运行。</p>
+<p>安装</p>
+<h1>vim /etc/apt/sources.list</h1>
+<p>deb <a href="http://people.connexer.com/~roberto/debian/" target="_blank">http://people.connexer.com/~roberto/debian/</a> squeeze main<br>deb-src <a href="http://people.connexer.com/~roberto/debian/" target="_blank">http://people.connexer.com/~roberto/debian/</a> squeeze main</p>
+<h1>gpg —keyserver keyring.debian.org —recv-key 63E4E277</h1>
+<h1>gpg —export -a 63E4E277 | sudo apt-key add -</h1>
+<h1>aptitude update &amp;&amp; aptitude install shorewall</h1>
+<p>配置</p>
+<p>cd /usr/share/doc/shorewall/example/one-interface<br>cp zones interfaces policy rules /etc/shorewall</p>
+<p>cd /etc/shorewall</p>
+<p>cat params</p>
+<p>cat zones</p>
+<p>cat interface</p>
+<p>cat policy</p>
+<p>cat rules</p>
+<p>vim /etc/default/shorewall<br>startup=1<br>…</p>
+<p>启动</p>
+<p>shorewall check<br>shorewall start</p>
+<p>log<br>aptitude install ulogd</p>
+<p>vim /etc/shorewall/shorewall.conf</p>
+<p>shrewalol restart</p>
+<p>tail -f /var/log/ulog/syslogemu.log | grep <ip></p>
+<p>shorewall-lite on openwrt</p>
+<p>shorewall-lite存在的意义主要有两个：<br>1、统一管理iptables配置；<br>2、给embedded device提供使用shorewall的机会；</p>
+<p>administrative system</p>
+<p>在官方文档中，管理主机称之为administrative system，简称为admin，待管理主机称之为firewall，为了避免定义混淆，本文改称为openwrt。</p>
+<p>admin</p>
+<p>root@shorewall-centre-d6:/etc/shorewall/# make -p export/rb450g &amp;&amp; cd export/rb450g<br>root@shorewall-centre-d6:/etc/shorewall/export/rb450g# make<br>shorewall compile -e . firewall<br>Compiling…<br>Processing /etc/shorewall/export/rb450g/params …<br>Processing /etc/shorewall/export/rb450g/shorewall.conf…<br>   WARNING: Your capabilities file is out of date — it does not contain all of the capabilities defined by Shorewall version 4.5.5.3<br>Compiling /etc/shorewall/export/rb450g/zones…<br>Compiling /etc/shorewall/export/rb450g/interfaces…<br>Determining Hosts in Zones…<br>Locating Action Files…<br>Compiling /usr/share/shorewall/action.Drop for chain Drop…<br>Compiling /usr/share/shorewall/action.Broadcast for chain Broadcast…<br>Compiling /usr/share/shorewall/action.Invalid for chain Invalid…<br>Compiling /usr/share/shorewall/action.NotSyn for chain NotSyn…<br>Compiling /usr/share/shorewall/action.Reject for chain Reject…<br>Compiling /etc/shorewall/export/rb450g/policy…<br>Compiling /etc/shorewall/export/rb450g/notrack…<br>Running /etc/shorewall/export/rb450g/initdone…<br>Adding Anti-smurf Rules<br>Adding rules for DHCP<br>Compiling TCP Flags filtering…<br>Compiling Kernel Route Filtering…<br>Compiling Martian Logging…<br>Compiling Accept Source Routing…<br>Compiling /etc/shorewall/export/rb450g/tcrules…<br>Compiling /etc/shorewall/export/rb450g/masq…<br>Compiling MAC Filtration — Phase 1…<br>Compiling /etc/shorewall/export/rb450g/rules…<br>Compiling /usr/share/shorewall/action.Invalid for chain %Invalid…<br>Compiling MAC Filtration — Phase 2…<br>Applying Policies…<br>Generating Rule Matrix…<br>Creating iptables-restore input…<br>Shorewall configuration compiled to /etc/shorewall/export/rb450g/firewall</p>
+<p>将会在当前目录生成firewall scripts，备份此文件</p>
+<p>root@shorewall-centre-d6:/etc/shorewall/export/rb450g# make install<br>scp firewall firewall.conf root@192.168.44.1:/etc/shorewall-lite/state<br>root@192.168.44.1&#39;s password:<br>firewall                                                                                                                             100%   79KB  79.3KB/s   00:00<br>firewall.conf                                                                                                                        100%  862     0.8KB/s   00:00<br>ssh root@192.168.44.1 “/sbin/shorewall-lite restart”<br>root@192.168.44.1&#39;s password:<br>Restarting Shorewall Lite….<br>Initializing…<br>Processing init user exit …<br>Processing tcclear user exit …<br>Setting up Route Filtering…<br>Setting up Martian Logging…<br>Setting up Accept Source Routing…<br>Setting up Proxy ARP…<br>Setting up Traffic Control…<br>Preparing iptables-restore input…<br>Running /usr/sbin/iptables-restore…<br>IPv4 Forwarding Enabled<br>Processing start user exit …<br>Processing started user exit …<br>done.</p>
+<p>执行mak install时，admin会将firewall、firewall.conf通过scp拷贝到rb450g的/etc/shorewall-lite/state目录下，在rb450g中执行/etc/init.d/shorewall-lite stop|start|restart均与该目录下的配置文件打交道。</p>
+<p>为了防止原有的/etc/config/firewall影响到shorewall-lite，需要disable firewall<br>/etc/init.d/firewall disable</p>
+<p>tricks：</p>
+<p>慎用iptables -F</p>
+<p>Chain INPUT (policy DROP 0 packets, 0 bytes) </p>
+<p>shorewall会将INPU chain置于DROP的状态，因而需要先：<br>iptables -P INPUT ACCEPT<br>然后<br>iptables -F</p>
+<p>否则会把自己锁在系统之外。</p>
+<p>firewall</p>
+<h1>opkg update</h1>
+<h1>opkg install iptables-mod-ulog kmod-ipt-ulog ulogd ulogd-mod-extra</h1>
+<h1>/etc/init.d/ulogd start</h1>
+<h1>/usr/share/shorewall-lite/showcap &gt; capabilities</h1>
+<h1>scp capabilities root@administrator system:/etc/shorewall/export/rb450g</h1>
+<p>排错时再开启ulogd</p>
+<p>默认情况下，会将log写到/var/log/ulogd.syslogemu中</p>
+<p>安装account模块，会自动安装kmod-ipt-account和kmod-ipt-compat-xtables/</p>
+<p>root@OpenWrt:/etc/init.d# opkg install iptables-mod-account<br>Installing iptables-mod-account (1.42-3.1) to root…<br>Downloading <a href="http://downloads.openwrt.org/attitude_adjustment/12.09/x86/generic/packages/iptables-mod-account_1.42-3.1_x86.ipk" target="_blank">http://downloads.openwrt.org/attitude_adjustment/12.09/x86/generic/packages/iptables-mod-account_1.42-3.1_x86.ipk</a>.<br>Installing kmod-ipt-account (3.3.8+1.42-3.1) to root…<br>Downloading <a href="http://downloads.openwrt.org/attitude_adjustment/12.09/x86/generic/packages/kmod-ipt-account_3.3.8+1.42-3.1_x86.ipk" target="_blank">http://downloads.openwrt.org/attitude_adjustment/12.09/x86/generic/packages/kmod-ipt-account_3.3.8+1.42-3.1_x86.ipk</a>.<br>Installing kmod-ipt-compat-xtables (3.3.8+1.42-3.1) to root…<br>Downloading <a href="http://downloads.openwrt.org/attitude_adjustment/12.09/x86/generic/packages/kmod-ipt-compat-xtables_3.3.8+1.42-3.1_x86.ipk" target="_blank">http://downloads.openwrt.org/attitude_adjustment/12.09/x86/generic/packages/kmod-ipt-compat-xtables_3.3.8+1.42-3.1_x86.ipk</a>.<br>Configuring kmod-ipt-compat-xtables.<br>Configuring kmod-ipt-account.<br>Configuring iptables-mod-account.</p>
+
+      
+    </div>
+    <footer>
+      
+        
+        
+      
+      <div class="clearfix"></div>
+    </footer>
+  </div>
+</article>
+
+
+  
+    <article class="post">
+  
+  <div class="post-content">
+    <header>
+      
+        <div class="icon"></div>
+        <time datetime="2013-08-11T08:00:00.000Z"><a href="/2013/08/11/2013-08-11-a-mesh-vpn-network-project/">2013-08-11</a></time>
+      
+      
+  
+    <h1 class="title"><a href="/2013/08/11/2013-08-11-a-mesh-vpn-network-project/">a mesh network</a></h1>
+  
+
+    </header>
+    <div class="entry">
+      
+        <p>mesh network看起来很牛，实际上也的确非常牛。这个小项目的初衷源于一个小小的需求：允许外网用户透过公司网络访问用户侧的一台设备。后来我对这张网络的期望越来越大，需求不断的叠加，最后演变成一个mesh network。由于各个互联节点分散在内外网，故需要用到vpn，所以题目就叫a mesh vpn network project。</p>
+
+      
+    </div>
+    <footer>
+      
+        
+          <div class="alignleft">
+            <a href="/2013/08/11/2013-08-11-a-mesh-vpn-network-project/#more" class="more-link">Read More</a>
+          </div>
+        
+        
+      
+      <div class="clearfix"></div>
+    </footer>
+  </div>
+</article>
+
+
+  
+    <article class="post">
+  
+  <div class="post-content">
+    <header>
+      
+        <div class="icon"></div>
+        <time datetime="2013-04-26T08:00:00.000Z"><a href="/2013/04/26/2013-04-26-openwrt-network-config/">2013-04-26</a></time>
+      
+      
+  
+    <h1 class="title"><a href="/2013/04/26/2013-04-26-openwrt-network-config/">OpenWRT网络配置</a></h1>
+  
+
+    </header>
+    <div class="entry">
+      
+        <h1>软硬件环境</h1>
+<ul>
+<li>硬件：Linksys WRT54G修改版，8M FLASH/64M RAM</li>
+<li>OS：OpenWRT ATTITUDE ADJUSTMENT (12.09-rc1, r34185)</li>
+</ul>
+<h1>需求</h1>
+<ul>
+<li>WAN口处于闲置状态，未连接任何网络</li>
+<li>LAN IP: 192.168.44.1/24，wifi IP: 192.168.77.1/24</li>
+<li>wifi与LAN这两个网段之间可互相访问</li>
+<li>在wifi口启用DHCP服务</li>
+<li>wifi处于AP mode，SSID为OpenWRT，启用WPS-PSK2认证</li>
+</ul>
+<h1>配置</h1>
+<figure class="highlight lang-bash"><pre><span class="comment"># cat /etc/config/network</span>
+
+config switch <span class="string">'eth0'</span>
+	option enable <span class="string">'1'</span>
+
+config switch_vlan <span class="string">'eth0_0'</span>
+	option device <span class="string">'eth0'</span>
+	option vlan <span class="string">'0'</span>
+	option ports <span class="string">'0 1 2 3 5'</span>
+
+config switch_vlan <span class="string">'eth0_1'</span>
+	option device <span class="string">'eth0'</span>
+	option vlan <span class="string">'1'</span>
+	option ports <span class="string">'4 5'</span>
+
+config interface <span class="string">'loopback'</span>
+	option ifname <span class="string">'lo'</span>
+	option proto <span class="string">'static'</span>
+	option ipaddr <span class="string">'127.0.0.1'</span>
+	option netmask <span class="string">'255.0.0.0'</span>
+
+config interface <span class="string">'lan'</span>
+	option type <span class="string">'bridge'</span>
+	option ifname <span class="string">'eth0.0'</span>
+	option proto <span class="string">'static'</span>
+	option netmask <span class="string">'255.255.255.0'</span>
+	option ipaddr <span class="string">'192.168.44.1'</span>
+
+config interface <span class="string">'wan'</span>
+	option ifname <span class="string">'eth0.1'</span>
+	option proto <span class="string">'dhcp'</span>
+	
+config interface <span class="string">'wifi'</span>
+	option _orig_ifname <span class="string">'radio0.network1'</span>
+	option _orig_bridge <span class="string">'false'</span>
+	option proto <span class="string">'static'</span>
+	option ipaddr <span class="string">'192.168.77.1'</span>
+	option netmask <span class="string">'255.255.255.0'</span>
+</pre></figure>
+
+<p>注意：在openwrt官网中，wifi section缺乏<code>_orig_ifname</code>和<code>_orig_bridge</code>这两个参数，无法正常工作。</p>
+<figure class="highlight lang-bash"><pre><span class="comment"># cat /etc/config/wireless </span>
+
+config wifi-device <span class="string">'radio0'</span>
+	option type <span class="string">'mac80211'</span>
+	option channel <span class="string">'11'</span>
+	option macaddr <span class="string">'00:13:10:e5:bc:53'</span>
+	option hwmode <span class="string">'11g'</span>
+	option txpower <span class="string">'20'</span>
+	option country <span class="string">'00'</span>
+
+config wifi-iface
+	option device <span class="string">'radio0'</span>
+	option network <span class="string">'wifi'</span>
+	option mode <span class="string">'ap'</span>
+	option encryption <span class="string">'psk2'</span>
+	option key <span class="string">'secret'</span>
+	option ssid <span class="string">'OpenWRT'</span>
+</pre></figure>
+
+<figure class="highlight lang-bash"><pre><span class="comment"># cat /etc/config/dhcp</span>
+
+config dnsmasq
+	option domainneeded <span class="string">'1'</span>
+	option boguspriv <span class="string">'1'</span>
+	option localise_queries <span class="string">'1'</span>
+	option rebind_protection <span class="string">'1'</span>
+	option rebind_localhost <span class="string">'1'</span>
+	option local <span class="string">'/lan/'</span>
+	option domain <span class="string">'lan'</span>
+	option expandhosts <span class="string">'1'</span>
+	option authoritative <span class="string">'1'</span>
+	option readethers <span class="string">'1'</span>
+	option leasefile <span class="string">'/tmp/dhcp.leases'</span>
+	option resolvfile <span class="string">'/tmp/resolv.conf.auto'</span>
+	list server <span class="string">'192.168.44.254'</span>
+
+config dhcp <span class="string">'lan'</span>
+	option interface <span class="string">'lan'</span>
+	option ignore <span class="string">'1'</span>
+
+config dhcp <span class="string">'wan'</span>
+	option interface <span class="string">'wan'</span>
+	option ignore <span class="string">'1'</span>
+
+config dhcp <span class="string">'wifi'</span>
+	option interface <span class="string">'wifi'</span>
+	option start     <span class="string">'100'</span>
+	option limit     <span class="string">'20'</span>
+	option leasetime <span class="string">'12h'</span>
+</pre></figure>
+
+<p>配置完成后</p>
+<figure class="highlight lang-bash"><pre><span class="comment"># ifup wifi</span>
+<span class="comment"># /etc/init.d/dnsmasq restart</span>
+</pre></figure>
+
+
+      
+    </div>
+    <footer>
+      
+        
+        
+      
+      <div class="clearfix"></div>
+    </footer>
+  </div>
+</article>
+
+
+  
+    <article class="post">
+  
+  <div class="post-content">
+    <header>
+      
+        <div class="icon"></div>
+        <time datetime="2011-04-16T15:30:00.000Z"><a href="/2011/04/16/2011-04-16-upgrade-openwrt/">2011-04-16</a></time>
+      
+      
+  
+    <h1 class="title"><a href="/2011/04/16/2011-04-16-upgrade-openwrt/">升级OpenWRT</a></h1>
+  
+
+    </header>
+    <div class="entry">
+      
+        <p>去年买了一款linksys wrt54g v4改造版，ROM为8M，RAM则升级到了64M，预装了tomato 1.25版。通过web界面，我把它升级到了kamikaza8.09.2，前段时间官网推出了backfire10.03.1-rc4，采用2.6.32的内核，提供更丰富的软件功能，支持的硬件类型也更多，于是我开始了曲折的升级之旅。</p>
+<p>根据官网的文档，我执行了以下操作：</p>
+<ol>
+<li>下载<a href="http://downloads.openwrt.org/backfire/10.03.1-rc4/brcm47xx/openwrt-wrt54g-squashfs.bin" target="_blank">backfire 10.03.1-rc4</a>镜像文件；</li>
+<li>在kamikaza的“升级界面”upload该镜像文件，出现不支持该镜像文件的错误。</li>
+</ol>
+<p>接着，我尝试将镜像文件上传到ROM中，然后通过命令行进行升级：</p>
+<ol>
+<li>启动SSHd；</li>
+<li>由于kamikaza没有SFTP，因此WinSCP无法通过SFTP将镜像文件上传至OpenWRT，于是我在笔记本上利用hfs这个小工具架设了一个web网站；</li>
+<li>在kamikaza中，通过wget将镜像文件下载至<code>/tmp</code>目录下；</li>
+<li><p><code>mtd -r write openwrt-wrt54g-squashfs.bin linux</code></p>
+<p>提示：</p>
+</li>
+</ol>
+<figure class="highlight"><pre>Could <span class="keyword">not</span> <span class="keyword">open</span> mtd device: linux
+Can<span class="attribute">'t</span> <span class="keyword">open</span> device <span class="keyword">for</span> writing!
+</pre></figure>
+
+<p>  接着</p>
+<figure class="highlight"><pre>mtd unlock linux
+mtd -r <span class="command">write</span> openwrt-wrt54g-squashfs.bin linux
+Bad trx header
+This <span class="keyword">is</span> <span class="keyword">not</span> <span class="keyword">the</span> correct <span class="type">file</span> format; refusing <span class="keyword">to</span> flash.
+Please specify <span class="keyword">the</span> correct <span class="type">file</span> <span class="keyword">or</span> use -f <span class="keyword">to</span> force.
+Image check failed.
+</pre></figure>
+
+<p>shit，不就是升个级吗？！</p>
+<p>于是又尝试了以下几种操作：</p>
+<p>1.<code>mtd -r write openwrt-wrt54g-squashfs.bin firmware</code></p>
+<p>实际上并没有firmware这个分区，当时找到的文档太老了，也不了解OpenWRT的flash分区情况就病急乱投医。<br>{: class=“info”}</p>
+<p>2.通过sysupgrade升级</p>
+<p>  创建/etc/sysupgrade.conf（复制wiki.openwrt.org中的/etc/sysupgrade.conf）</p>
+<figure class="highlight"><pre>sysupgrade openwrt-wrt54g-squashfs.bin
+Bad trx header
+This <span class="keyword">is</span> <span class="keyword">not</span> the correct <span class="keyword">file</span> format; refusing <span class="keyword">to</span> flash.
+Please specify the correct <span class="keyword">file</span> <span class="keyword">or</span> <span class="keyword">use</span> -f <span class="keyword">to</span> <span class="keyword">force</span>.
+Image check failed.
+</pre></figure>
+
+<p>傻眼了，难不成经过改造后的这款Linksys无法升级？</p>
+<p>后来忽然想到，当时是通过tomato的web页面升级到OpenWRT的，何不先将kamikaza升级至tomato，然后再从tomato升级至backfire？但又有些担心，万一变成砖头怎么办？所以google到一篇文章：Installing Tomato over OpenWRT for Linksys WRT54G，似乎DD-WRT对unbricked有一手，即便出错了还能倒退。<br>于是下载了一个dd-wrt.v24_mini_generic.bin，颤抖的双手终于将kamikaza升级到DD-WRT，接下来就非常顺利了，又从DD-WRT的web升级到了backfire。紧接安装所需的软件包：</p>
+<figure class="highlight"><pre><span class="title">opkg</span> update
+<span class="title">opkg</span> install tcpdump
+<span class="title">opkg</span> install tmux
+<span class="title">opkg</span> install openvpn
+<span class="title">opkg</span> install iftop
+<span class="title">opkg</span> install iperf
+</pre></figure>
+
+<p>至此，Linksys WRT54G又恢复了元气，甚至更为强壮。</p>
+
+      
+    </div>
+    <footer>
+      
+        
+        
+      
+      <div class="clearfix"></div>
+    </footer>
+  </div>
+</article>
+
+
+  
+
+  <nav id="pagination">
+  
+  
+  <div class="clearfix"></div>
+</nav>
+</div></div>
+    <aside id="sidebar" class="alignright">
+  <div class="search">
+  <form action="//google.com/search" method="get" accept-charset="utf-8">
+    <input type="search" name="q" results="0" placeholder="Search">
+    <input type="hidden" name="q" value="site:ioiioi.github.com">
+  </form>
+</div>
+
+  
+<div class="widget tag">
+  <h3 class="title">Categories</h3>
+  <ul class="entry">
+  
+    <li><a href="/categories/RouterOS/MikroTik/">MikroTik</a><small>2</small></li>
+  
+    <li><a href="/categories/RouterBOARD/">RouterBOARD</a><small>1</small></li>
+  
+    <li><a href="/categories/RouterOS/">RouterOS</a><small>4</small></li>
+  
+    <li><a href="/categories/VPS/">VPS</a><small>1</small></li>
+  
+    <li><a href="/categories/openwrt/ap/">ap</a><small>1</small></li>
+  
+    <li><a href="/categories/confluence/">confluence</a><small>1</small></li>
+  
+    <li><a href="/categories/debian/">debian</a><small>12</small></li>
+  
+    <li><a href="/categories/dhcp/debian/">debian</a><small>1</small></li>
+  
+    <li><a href="/categories/dns/debian/">debian</a><small>1</small></li>
+  
+    <li><a href="/categories/ldap/debian/">debian</a><small>1</small></li>
+  
+    <li><a href="/categories/dhcp/">dhcp</a><small>1</small></li>
+  
+    <li><a href="/categories/dns/">dns</a><small>1</small></li>
+  
+    <li><a href="/categories/debian/domU/">domU</a><small>1</small></li>
+  
+    <li><a href="/categories/ubuntu/domU/">domU</a><small>1</small></li>
+  
+    <li><a href="/categories/embeded/">embeded</a><small>1</small></li>
+  
+    <li><a href="/categories/freebsd/">freebsd</a><small>1</small></li>
+  
+    <li><a href="/categories/illumos/">illumos</a><small>1</small></li>
+  
+    <li><a href="/categories/iptable/">iptable</a><small>1</small></li>
+  
+    <li><a href="/categories/virtualization/iscsi/">iscsi</a><small>1</small></li>
+  
+    <li><a href="/categories/xen/kvm/">kvm</a><small>1</small></li>
+  
+    <li><a href="/categories/kvm/">kvm</a><small>1</small></li>
+  
+    <li><a href="/categories/network/ldap/">ldap</a><small>1</small></li>
+  
+    <li><a href="/categories/ldap/">ldap</a><small>1</small></li>
+  
+    <li><a href="/categories/openwrt/linksys/">linksys</a><small>1</small></li>
+  
+    <li><a href="/categories/linux/">linux</a><small>1</small></li>
+  
+    <li><a href="/categories/linux/netbsd/">netbsd</a><small>1</small></li>
+  
+    <li><a href="/categories/openbsd/netmgmt/">netmgmt</a><small>1</small></li>
+  
+    <li><a href="/categories/openwrt/vpn/network/">network</a><small>1</small></li>
+  
+    <li><a href="/categories/debian/network/">network</a><small>2</small></li>
+  
+    <li><a href="/categories/network/">network</a><small>3</small></li>
+  
+    <li><a href="/categories/networking/">networking</a><small>1</small></li>
+  
+    <li><a href="/categories/nexenta/">nexenta</a><small>4</small></li>
+  
+    <li><a href="/categories/octopress/">octopress</a><small>3</small></li>
+  
+    <li><a href="/categories/debian/octopress/">octopress</a><small>2</small></li>
+  
+    <li><a href="/categories/openSUSE/">openSUSE</a><small>2</small></li>
+  
+    <li><a href="/categories/openbsd/">openbsd</a><small>8</small></li>
+  
+    <li><a href="/categories/openbsd openntpd/">openbsd openntpd</a><small>1</small></li>
+  
+    <li><a href="/categories/openwrt/">openwrt</a><small>4</small></li>
+  
+    <li><a href="/categories/others/">others</a><small>1</small></li>
+  
+    <li><a href="/categories/seafile/">seafile</a><small>1</small></li>
+  
+    <li><a href="/categories/seafile/services/">services</a><small>1</small></li>
+  
+    <li><a href="/categories/linux/netbsd/solaris/">solaris</a><small>1</small></li>
+  
+    <li><a href="/categories/RouterBOARD/solaris11/">solaris11</a><small>1</small></li>
+  
+    <li><a href="/categories/solaris11/">solaris11</a><small>1</small></li>
+  
+    <li><a href="/categories/tech/">tech</a><small>1</small></li>
+  
+    <li><a href="/categories/tech/tips/">tips</a><small>1</small></li>
+  
+    <li><a href="/categories/ubuntu/">ubuntu</a><small>1</small></li>
+  
+    <li><a href="/categories/vim/">vim</a><small>1</small></li>
+  
+    <li><a href="/categories/windows/virtualbox/">virtualbox</a><small>1</small></li>
+  
+    <li><a href="/categories/virtualbox/">virtualbox</a><small>5</small></li>
+  
+    <li><a href="/categories/debian/virtualbox/">virtualbox</a><small>1</small></li>
+  
+    <li><a href="/categories/virtualization/">virtualization</a><small>2</small></li>
+  
+    <li><a href="/categories/kvm/virtualization/">virtualization</a><small>1</small></li>
+  
+    <li><a href="/categories/openwrt/vpn/">vpn</a><small>1</small></li>
+  
+    <li><a href="/categories/vpn/">vpn</a><small>1</small></li>
+  
+    <li><a href="/categories/windows/">windows</a><small>1</small></li>
+  
+    <li><a href="/categories/virtualization/xen/">xen</a><small>1</small></li>
+  
+    <li><a href="/categories/ubuntu/domU/xen/">xen</a><small>1</small></li>
+  
+    <li><a href="/categories/xen/">xen</a><small>2</small></li>
+  
+    <li><a href="/categories/debian/domU/xen/">xen</a><small>1</small></li>
+  
+    <li><a href="/categories/illumos/zfs/">zfs</a><small>1</small></li>
+  
+    <li><a href="/categories/xen/kvm/虚拟化/">虚拟化</a><small>1</small></li>
+  
+  </ul>
+</div>
+
+
+  
+</aside>
+    <div class="clearfix"></div>
+  </div>
+  <footer id="footer" class="inner"><div class="alignleft">
+  
+  &copy; 2013 alfie chan
+  
+</div>
+<div class="clearfix"></div></footer>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
+<script src="/js/jquery.imagesloaded.min.js"></script>
+<script src="/js/gallery.js"></script>
+
+
+
+
+<link rel="stylesheet" href="/fancybox/jquery.fancybox.css" media="screen" type="text/css">
+<script src="/fancybox/jquery.fancybox.pack.js"></script>
+<script type="text/javascript">
+(function($){
+  $('.fancybox').fancybox();
+})(jQuery);
+</script>
+
+</body>
+</html>

@@ -1,0 +1,330 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta charset="utf-8">
+  
+  <title>Linksys wrt54g，一个不老的传说 | linuxabc</title>
+  <meta name="author" content="alfie chan">
+  
+  <meta name="description" content="Linksys 于2003年底推出了一款优秀的无线路由器：WRT-54G。一开始的时候，它并不引人注意，人们仅仅把它当作一个无线接入点而已。不过选择了linux作为操作系统给它带来了一个意想不到的机会，那就是用户可以根据自己的需要，在上面自由的修改和发布新的firmware。随着一些功能丰富的第三方">
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+  <meta property="og:title" content="Linksys wrt54g，一个不老的传说"/>
+  <meta property="og:site_name" content="linuxabc"/>
+
+  
+    <meta property="og:image" content="undefined"/>
+  
+
+  <link href="/favicon.png" rel="icon">
+  <link rel="alternate" href="/atom.xml" title="linuxabc" type="application/atom+xml">
+  <link rel="stylesheet" href="/css/style.css" media="screen" type="text/css">
+  <!--[if lt IE 9]><script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script><![endif]-->
+  
+</head>
+
+
+<body>
+  <header id="header" class="inner"><div class="alignleft">
+  <h1><a href="/">linuxabc</a></h1>
+  <h2><a href="/">focus on security, network management and embeded OS</a></h2>
+</div>
+<nav id="main-nav" class="alignright">
+  <ul>
+    
+      <li><a href="/">Home</a></li>
+    
+      <li><a href="/archives">Archives</a></li>
+    
+  </ul>
+  <div class="clearfix"></div>
+</nav>
+<div class="clearfix"></div></header>
+  <div id="content" class="inner">
+    <div id="main-col" class="alignleft"><div id="wrapper"><article class="post">
+  
+  <div class="post-content">
+    <header>
+      
+        <div class="icon"></div>
+        <time datetime="2006-06-08T01:00:00.000Z"><a href="/2006/06/08/2006-06-08-linksys-wrt54-is-a-fairy-tale-of-forever/">2006-06-8</a></time>
+      
+      
+  
+    <h1 class="title">Linksys wrt54g，一个不老的传说</h1>
+  
+
+    </header>
+    <div class="entry">
+      
+        <p>Linksys 于2003年底推出了一款优秀的无线路由器：WRT-54G。一开始的时候，它并不引人注意，人们仅仅把它当作一个无线接入点而已。不过选择了linux作为操作系统给它带来了一个意想不到的机会，那就是用户可以根据自己的需要，在上面自由的修改和发布新的firmware。随着一些功能丰富的第三方firmware的出现，它终于散发出了迷人的魅力，为广大玩家所追捧。Linksys至今依然生产销售WRT-54G这个系列的产品，足见其受欢迎的程度，WRT-54G还在续写着一个不老的传说。</p>
+<p>那么它究竟有什么能耐让玩家如此推崇呢？下面让笔者带领你深入它那神奇的世界一探究竟。厄，且慢，是WRT-54G 的firmware让它流行起来的，所以不妨先来看看它们演变的历程。</p>
+<p>WRT-54G刚推出的时候，官方firmware的功能并不强大，不久后，一家叫做sveasoft公司看到的其中的契机，在其基础上开发了Alchemy，并按每份拷贝收取20美元，这就让开源社区的用户大为不满了，连Linksys都遵循GPL开放了官方firmware的源代码，凭什么sveasoft这个第三方的firmware却要收费，于是，一些热心的发烧友重起炉灶，开发了其他的版本，目前比较流行的是HyperWRT，DD-WRT和OpenWRT。其中HyperWRT的理念是忠于官方版本，只增加小部分功能，追求高稳定性；OpenWRT的理念则是设计一个通用的最小内核，让该内核也可以运行在其他品牌的无线路由器上，然后由其他人在上面开发新的功能插件，不过它的易用性就比较差了，需要通过命令行来配置；而DD-WRT追求的则是最完善的功能和最佳的易用性，它的确做到了这一点，因而赢得了广大用户芳心。平心而论，OpenWRT的开发模式才是正确的方向，它的ipkg就很好用，一些高阶的用户更偏爱OpenWRT，相信OpenWRT日后必有大的作为。<br>目前DD-WRT是最流行的版本，为了照顾大部分读者，我选择了DD-WRT作为范例，现在让我们开始WRT-54G的神奇之旅吧。</p>
+<h2>一、路由与交换</h2>
+<p>顾名思义，WRT-54G的一项重要的功能就是支持路由。</p>
+<p>市面上，和WRT-54G同等级别的网络设备，比如ASUS adsl modem和D-link VPN网关等，都只支持静态路由和RIP，而DD-WRT除了支持前面两种外，还支持企业级别的动态路由协议：OSPF和BGP。实现路由功能的模块是BIRD，相对于linux下著名的路由软件Quagga （前身是zebra）一点也不逊色。有兴趣的读者可以参考www.bird.org。</p>
+<p>WRT-54G提供了5个以太网口和1个无线网口。其中5个以太网口又分出1个WAN口和4个LAN口。得益于linux的高灵活性和可配置性，我们可以在DD-WRT中对这六个网口进行自由组合，创建多个vlan，最大可以支持15个，另外DD-WRT还支持tag（802.1q），和trunk，亦即在多条链路之间负载均衡。结合路由和交换，WRT-54G完全可以在小型企业的网络里面一展身手，作为三层交换机非常合适。事实上，国外一些中小型企业就专门购买WRT-54G，将firmware刷成DD-WRT，关闭无线功能，启用路由和划分vlan，配置tag和trunk来取代高昂的网络设备。</p>
+<p>花这么少的钱就能使用万元级别网络设备的功能，真不可思议！</p>
+<h2>二、无线功能</h2>
+<p>另一个重要的功能当然就是无线啦。因为工作的关系，笔者曾试用过多种品牌无线路由器，相比之下，WRT-54G的无线信号和稳定性要高于同级别的其他品牌，如TP-Link，D-Link和netgear等，比cisco稍差，不过买一个cisco 1240G就可以买8个WRT-54G了。WRT-54G还提供了异常丰富的物理调配选项，从速率到发射功率不一而足，比1240G尤过之而无不及。单纯从物理性能方面的比较还无法表现出DD-WRT的优势，其丰富的无线安全选项才是我喜欢它的原因。DD-WRT支持WEP，WPA和WPA2加密方式，支持radius认证和802.1x端口安全，在企业中组网的时候，完全可以在其上实施微软的PEAP这种最流行、方便的安全方案。</p>
+<p>此外，DD-WRT还支持WDS，在工地或者仓库这些空旷，布线不方便的地方，这项功能就有用武之地了，可以通过两个WRT-54G桥接两个LAN，与此同时还可以扮演AP的角色。</p>
+<p>DD-WRT的无线功能非常丰富，即适合家庭使用，也满足企业网中苛刻的要求。</p>
+<h2>三、安全</h2>
+<p>DD-WRT集成了linux中赫赫有名的iptables，这是一个状态检测防火墙，功能强大。实际上，像端口转发，vlan划分，DMZ（非军事区）和VPN等很多功能都是iptables在幕后（参与）实现的，iptables需要通过命令行配置，比较复杂，具体的内容已经超出了本文所讨论的范围。不过别担心，一般的用户不需要直接和它打交道，DD-WRT会在后台帮你搞定iptables。</p>
+<p>在DD-WRT中可以创建各种各样的Internet访问策略。 用户可以根据实际情况，针对客户端IP，应用，时间段和web页面的关键字来进行过滤，举个简单的例子，假设你只允许内网的用户在晚上11点至凌晨7点期间使用BT，那么就可以结合时间段和应用来创建这条访问策略了，强大而且灵活。这个功能，连同后面讲的QoS都是由iptables + l7-filter在幕后实现，这也是笔者非常喜欢WRT-54G的一个重要原因。</p>
+<p>DD-WRT对VPN的支持是不遗余力的，对于IPSec，PPTP和L2TP的穿透根本不在话下，还内建了PPTP server/client，如果在家庭/公司的WRT-54G上启用了PPTP服务器，用户就可以随时随地访问家庭/公司的网络资源了。用户还可以在DD-WRT上通过ipkg（后面会讲述）安装目前流行的开源SSL VPN：OpenVPN，它能提供更丰富的功能，支持LAN-to-LAN，Client-to-LAN，Point-to-Point三种网络架构，支持全动态IP的VPN网关。不过OpenVPN对cpu的要求挺高的，一般用户只需要用PPTP就可以了。那企业用户怎么办，别担心，DD-WRT还提供了一个有趣的选项：cpu超频，该怎么做不用我多说了吧。</p>
+<h2>四、网络服务</h2>
+<ol>
+<li><p>DHCP，DD-WRT集成了一个udhcp模块，该模块专为嵌入式系统设计，提供DHCP server和client的功能。</p>
+</li>
+<li><p>dnsmasq，该模块提供了两种功能，一是dhcp，一是dns。它的dhcp功能比udhcp更强大，不仅可以动态分配IP，它还可以根据客户机的MAC地址来分配固定的IP，机器名和域名；dnsmasq担任了部分DNS服务器的角色，当局域网中有两台机器需要互相访问的时候，比如文件共享，可以直接访问对方的机器名或域名，（机器名和域名由dnsmasq配置分配）无须在小型的网络中再构建一个DNS服务器。</p>
+</li>
+<li><p>ddns，动态域名解析，相信大家都知道这个是干什么的，DD-WRT集成了dysdns.org，三家的客户端，只需要从列表中选择即可，非常方便，不用再像以前那样需要在服务器中安装和配置客户端。</p>
+</li>
+<li><p>Samba<br>DD-WRT还可以担当文件共享中继器的角色，假如你的内网有一台服务器需要提供文件共享服务给Internet的用户，只需要在DD-WRT中挂载该共享链接，外网的用户就可以通过IE来访问这些共享的文件了，安全又方便。</p>
+</li>
+<li><p>port forwarding，端口转发，当需要在内网提供网络服务给Internet的用户时，就需要用到这个功能。DD-WRT除了提供基本的端口转发外，还提供了port range forwarding、port triggering和UPnP。其中UPnP协议是微软的一项技术，当内网服务器启用一项服务的时候，它通过UPnP协议告知DD-WRT打开某个/些特定端口进行监听，并将来访的数据包进行端口转发；当该服务停止的时候，又通知DD-WRT关闭这些端口，这项特性比静态的端口转发灵活，方便，安全。</p>
+</li>
+<li><p>IPv6，实在是太强了，就这么几百块钱的东西，连IPv6也支持了，还有什么好说的呢，这也反映了linux的灵活性。</p>
+</li>
+<li><p>ntp client，配置了该功能后，DD-WRT就可以跟Internet上的网络时间服务器进行时间同步，这在<br>hotspot计费，OpenVPN和排除故障的时候是很有用的。</p>
+</li>
+</ol>
+<h2>五、管理</h2>
+<p>DD-WRT支持3种管理界面：web，telnet和SSH</p>
+<ol>
+<li><p>web GUI，DD-WRT的web界面实现了绝大部分的功能，层次设计清晰，即便是菜鸟也可以很快从这里入手，特别是它的状态察看做得尤其出色，CPU，内存，DHCP租约，当前的无线客户端等等信息应有尽有，管理起来非常方便。</p>
+</li>
+<li><p>telnet和ssh，对于大虾而言可能不屑于用web，DD-WRT还提供了telnet和SSH这两种管理界面，尤其是后者，应该满足他们的要求，毕竟DD-WRT是一个linxu嵌入式系统，所以要玩弄其于鼓掌之间肯定需要用到命令行，比如使用ipkg安装新的软件包就得在这里进行。</p>
+</li>
+<li><p>snmp，开启snmp后，我们可以通过网管工具，监控当前的无线用户数，带宽的利用率等内容，简单方便。</p>
+</li>
+<li><p>syslogd，设备运行期间会产生一些告警信息，通过配置syslogd，就可以将这些信息传到syslogd服务器上，以便网络管理员排错维护之用。</p>
+</li>
+<li><p>backup，DD-WRT在web界面里提供了备份配置的功能，不过我还是喜欢在命令行下写一个脚本，结合DD-WRT提供的cron任务功能，进行定时备份。</p>
+</li>
+</ol>
+<h2>六、其他</h2>
+<ol>
+<li><p>ipkg，这肯定是从Debian的apt中获得的灵感，是OpenWRT设计理念中的重要组成部分。DD-WRT将它移植过来，允许用户直接在DD-WRT中，通过Internet来下载安装新的软件包，这简直是赋予了DD-WRT第二次生命，因为新的软件层出不穷，有了ipkg以后就可以随时定制DD-WRT的功能了。目前OpenWRT官方提供的软件包还比较少，不过第三方的软件库就很丰富了，从tcpdump到mysql应有尽有，有兴趣的用户不妨参考下面两个网址：</p>
+</li>
+<li><p>QoS，这个东东足以写一本厚厚的书，它涉及到数据包的分类，排队，拥塞控制等。由于它太复杂，所以一般面向家庭和中低端的企业网络设备根本没有提供这项功能，而DD-WRT又再一次展示了linux的强大，提供了完整的QoS。数据流根据MAC，IP和应用可划分为4个从低到高的优先级别，队列也有两种可供选择HFSC和HTB，另外DD-WRT还可以对单个物理端口流量进行限制。这些丰富的QoS选项足以让用户流畅的使用纷繁的网络应用，国外有些用户调配WRT54G之后，同时使用BT和VoIP，如果没有强大的QoS，这根本不可能。</p>
+</li>
+<li><p>overclocking，超频？咋一看，我也不敢相信自己的眼睛，DD-WRT居然还有这一手，真好玩，对于硬件爱好者来说，超频早已经是遥远的回忆了，毕竟现在的cpu动不动就是2G，双核，没有必要费九牛二虎之力超频了。不过在WRT-54G上面超频就恰到好处，因为WRT-54G只有200Mhz，如果跑要OpenVPN的话，超频就显得很有用了。</p>
+</li>
+<li><p>硬件版本，目前，除了Linksys的WRT-54G系列之外，DD-WRT也支持还有其他品牌的无线路由器，请参见<a href="http://wiki.openwrt.org/TableOfHardware" target="_blank">下表</a>，不过还是建议买Linksys的产品，这样可以避免兼容性问题，目前国内销售的基本上都是WRT-54G v4，售价在510-540之间。</p>
+</li>
+</ol>
+<p>需要注意的是WRT54G v5和WRT54GS v5这两款，Linksys被cisco收购后，cisco减少了Flash和RAM容量，并将操作系统换成了VxWorks，如果要刷成其他firmware的话，需要为它增加一个串口，不过由于RAM太小，所以不建议购买。<br>{: class=“info” }</p>
+<h2>七、定制你的WRT-54G</h2>
+<p>wrt54不仅仅在软件方面给用户最大的自由度，而且在硬件方面也留有很多可以修改的余地。</p>
+<p>DD-WRT就有一个MMC/SD的选项，也就是说，如果你觉得4M的Flash太小，无法满足你的要求，那么可以额外为WRT-54G增加一块MMC/SD卡，当然，这需要在电路板上进行一些焊接工作，可别吓着了，请<a href="http://support.warwick.net/~ryan/wrt54g-v4/v4_sd_done.html" target="_blank">参考</a>，它提供了非常翔实的资料，只要您有一些焊接知识，完全可以自己动手搞定。</p>
+<p>增加MMC/SD仅仅是冰山一角，清看看<a href="http://wiki.openwrt.org/OpenWrtDocs/Customizing" target="_blank">这里</a>，看看那些疯狂的玩家都对WRT-54G干了些什么，难以置信！有人为WRT-54G增加了音箱，有人为它增加了LCD，甚至有人将外壳拆了，将电路板装在遥控车上，实现了真正意义上的“无限你的无线”</p>
+<p>看到这，您还等什么？还不赶紧去抱一台回去玩玩！</p>
+
+      
+    </div>
+    <footer>
+      
+        
+  
+  <div class="categories">
+    <a href="/categories/embeded/">embeded</a>
+  </div>
+
+        
+        
+  <div class="addthis addthis_toolbox addthis_default_style">
+    
+      <a class="addthis_button_facebook_like" fb:like:layout="button_count"></a>
+    
+    
+      <a class="addthis_button_tweet"></a>
+    
+    
+      <a class="addthis_button_google_plusone" g:plusone:size="medium"></a>
+    
+    
+      <a class="addthis_button_pinterest_pinit" pi:pinit:layout="horizontal"></a>
+    
+    <a class="addthis_counter addthis_pill_style"></a>
+  </div>
+  <script type="text/javascript" src="//s7.addthis.com/js/300/addthis_widget.js"></script>
+
+      
+      <div class="clearfix"></div>
+    </footer>
+  </div>
+</article>
+
+</div></div>
+    <aside id="sidebar" class="alignright">
+  <div class="search">
+  <form action="//google.com/search" method="get" accept-charset="utf-8">
+    <input type="search" name="q" results="0" placeholder="Search">
+    <input type="hidden" name="q" value="site:ioiioi.github.com">
+  </form>
+</div>
+
+  
+<div class="widget tag">
+  <h3 class="title">Categories</h3>
+  <ul class="entry">
+  
+    <li><a href="/categories/RouterOS/MikroTik/">MikroTik</a><small>2</small></li>
+  
+    <li><a href="/categories/RouterBOARD/">RouterBOARD</a><small>1</small></li>
+  
+    <li><a href="/categories/RouterOS/">RouterOS</a><small>4</small></li>
+  
+    <li><a href="/categories/VPS/">VPS</a><small>1</small></li>
+  
+    <li><a href="/categories/openwrt/ap/">ap</a><small>1</small></li>
+  
+    <li><a href="/categories/confluence/">confluence</a><small>1</small></li>
+  
+    <li><a href="/categories/debian/">debian</a><small>12</small></li>
+  
+    <li><a href="/categories/dhcp/debian/">debian</a><small>1</small></li>
+  
+    <li><a href="/categories/dns/debian/">debian</a><small>1</small></li>
+  
+    <li><a href="/categories/ldap/debian/">debian</a><small>1</small></li>
+  
+    <li><a href="/categories/dhcp/">dhcp</a><small>1</small></li>
+  
+    <li><a href="/categories/dns/">dns</a><small>1</small></li>
+  
+    <li><a href="/categories/debian/domU/">domU</a><small>1</small></li>
+  
+    <li><a href="/categories/ubuntu/domU/">domU</a><small>1</small></li>
+  
+    <li><a href="/categories/embeded/">embeded</a><small>1</small></li>
+  
+    <li><a href="/categories/freebsd/">freebsd</a><small>1</small></li>
+  
+    <li><a href="/categories/illumos/">illumos</a><small>1</small></li>
+  
+    <li><a href="/categories/iptable/">iptable</a><small>1</small></li>
+  
+    <li><a href="/categories/virtualization/iscsi/">iscsi</a><small>1</small></li>
+  
+    <li><a href="/categories/xen/kvm/">kvm</a><small>1</small></li>
+  
+    <li><a href="/categories/kvm/">kvm</a><small>1</small></li>
+  
+    <li><a href="/categories/network/ldap/">ldap</a><small>1</small></li>
+  
+    <li><a href="/categories/ldap/">ldap</a><small>1</small></li>
+  
+    <li><a href="/categories/openwrt/linksys/">linksys</a><small>1</small></li>
+  
+    <li><a href="/categories/linux/">linux</a><small>1</small></li>
+  
+    <li><a href="/categories/linux/netbsd/">netbsd</a><small>1</small></li>
+  
+    <li><a href="/categories/openbsd/netmgmt/">netmgmt</a><small>1</small></li>
+  
+    <li><a href="/categories/openwrt/vpn/network/">network</a><small>1</small></li>
+  
+    <li><a href="/categories/debian/network/">network</a><small>2</small></li>
+  
+    <li><a href="/categories/network/">network</a><small>3</small></li>
+  
+    <li><a href="/categories/networking/">networking</a><small>1</small></li>
+  
+    <li><a href="/categories/nexenta/">nexenta</a><small>4</small></li>
+  
+    <li><a href="/categories/octopress/">octopress</a><small>3</small></li>
+  
+    <li><a href="/categories/debian/octopress/">octopress</a><small>2</small></li>
+  
+    <li><a href="/categories/openSUSE/">openSUSE</a><small>2</small></li>
+  
+    <li><a href="/categories/openbsd/">openbsd</a><small>8</small></li>
+  
+    <li><a href="/categories/openbsd openntpd/">openbsd openntpd</a><small>1</small></li>
+  
+    <li><a href="/categories/openwrt/">openwrt</a><small>4</small></li>
+  
+    <li><a href="/categories/others/">others</a><small>1</small></li>
+  
+    <li><a href="/categories/seafile/">seafile</a><small>1</small></li>
+  
+    <li><a href="/categories/seafile/services/">services</a><small>1</small></li>
+  
+    <li><a href="/categories/linux/netbsd/solaris/">solaris</a><small>1</small></li>
+  
+    <li><a href="/categories/RouterBOARD/solaris11/">solaris11</a><small>1</small></li>
+  
+    <li><a href="/categories/solaris11/">solaris11</a><small>1</small></li>
+  
+    <li><a href="/categories/tech/">tech</a><small>1</small></li>
+  
+    <li><a href="/categories/tech/tips/">tips</a><small>1</small></li>
+  
+    <li><a href="/categories/ubuntu/">ubuntu</a><small>1</small></li>
+  
+    <li><a href="/categories/vim/">vim</a><small>1</small></li>
+  
+    <li><a href="/categories/windows/virtualbox/">virtualbox</a><small>1</small></li>
+  
+    <li><a href="/categories/virtualbox/">virtualbox</a><small>5</small></li>
+  
+    <li><a href="/categories/debian/virtualbox/">virtualbox</a><small>1</small></li>
+  
+    <li><a href="/categories/virtualization/">virtualization</a><small>2</small></li>
+  
+    <li><a href="/categories/kvm/virtualization/">virtualization</a><small>1</small></li>
+  
+    <li><a href="/categories/openwrt/vpn/">vpn</a><small>1</small></li>
+  
+    <li><a href="/categories/vpn/">vpn</a><small>1</small></li>
+  
+    <li><a href="/categories/windows/">windows</a><small>1</small></li>
+  
+    <li><a href="/categories/virtualization/xen/">xen</a><small>1</small></li>
+  
+    <li><a href="/categories/ubuntu/domU/xen/">xen</a><small>1</small></li>
+  
+    <li><a href="/categories/xen/">xen</a><small>2</small></li>
+  
+    <li><a href="/categories/debian/domU/xen/">xen</a><small>1</small></li>
+  
+    <li><a href="/categories/illumos/zfs/">zfs</a><small>1</small></li>
+  
+    <li><a href="/categories/xen/kvm/虚拟化/">虚拟化</a><small>1</small></li>
+  
+  </ul>
+</div>
+
+
+  
+</aside>
+    <div class="clearfix"></div>
+  </div>
+  <footer id="footer" class="inner"><div class="alignleft">
+  
+  &copy; 2013 alfie chan
+  
+</div>
+<div class="clearfix"></div></footer>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
+<script src="/js/jquery.imagesloaded.min.js"></script>
+<script src="/js/gallery.js"></script>
+
+
+
+
+<link rel="stylesheet" href="/fancybox/jquery.fancybox.css" media="screen" type="text/css">
+<script src="/fancybox/jquery.fancybox.pack.js"></script>
+<script type="text/javascript">
+(function($){
+  $('.fancybox').fancybox();
+})(jQuery);
+</script>
+
+</body>
+</html>

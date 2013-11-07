@@ -1,0 +1,317 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta charset="utf-8">
+  
+  <title>DNS服务 | linuxabc</title>
+  <meta name="author" content="alfie chan">
+  
+  <meta name="description" content="介绍
+在“DHCP服务”一章中，我们知道在TCP/IP的世界里，每台计算机之间的通信都是基于IP地址的，然而IP地址是一些毫无意义的数字，很难记忆，因此人们想出能否用名称来代替IP地址，这就诞生了DNS服务。举例来说，我们可以通过www.sina.com.cn这个域名来访问新浪首页，www代表网页服务，sina.com.cn代表新浪公司这个域。">
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+  <meta property="og:title" content="DNS服务"/>
+  <meta property="og:site_name" content="linuxabc"/>
+
+  
+    <meta property="og:image" content="undefined"/>
+  
+
+  <link href="/favicon.png" rel="icon">
+  <link rel="alternate" href="/atom.xml" title="linuxabc" type="application/atom+xml">
+  <link rel="stylesheet" href="/css/style.css" media="screen" type="text/css">
+  <!--[if lt IE 9]><script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script><![endif]-->
+  
+</head>
+
+
+<body>
+  <header id="header" class="inner"><div class="alignleft">
+  <h1><a href="/">linuxabc</a></h1>
+  <h2><a href="/">focus on security, network management and embeded OS</a></h2>
+</div>
+<nav id="main-nav" class="alignright">
+  <ul>
+    
+      <li><a href="/">Home</a></li>
+    
+      <li><a href="/archives">Archives</a></li>
+    
+  </ul>
+  <div class="clearfix"></div>
+</nav>
+<div class="clearfix"></div></header>
+  <div id="content" class="inner">
+    <div id="main-col" class="alignleft"><div id="wrapper"><article class="post">
+  
+  <div class="post-content">
+    <header>
+      
+        <div class="icon"></div>
+        <time datetime="2013-04-14T08:30:00.000Z"><a href="/2013/04/14/2013-04-14-dns-service/">2013-04-14</a></time>
+      
+      
+  
+    <h1 class="title">DNS服务</h1>
+  
+
+    </header>
+    <div class="entry">
+      
+        <h1>介绍</h1>
+<p>在“DHCP服务”一章中，我们知道在TCP/IP的世界里，每台计算机之间的通信都是基于IP地址的，然而IP地址是一些毫无意义的数字，很难记忆，因此人们想出能否用名称来代替IP地址，这就诞生了DNS服务。<br>举例来说，我们可以通过www.sina.com.cn这个域名来访问新浪首页，www代表网页服务，sina.com.cn代表新浪公司这个域。</p>
+<a id="more"></a>
+
+<ol>
+<li><p><strong>IP地址浪费</strong>，互联网IP地址资源紧缺，若每台电脑都分配一个静态互联网IP地址是一种很奢侈的行为，因为并不是每台电脑时刻处于开机状态，也不是每一台电脑都必须永远在线，这些电脑具有临时访问网络的特点，所以静态IP地址策略会导致互联网IP地址的极度浪费。</p>
+</li>
+<li><p><strong>管理困难</strong>，为了避免IP地址冲突，网络管理员需要维护一张IP地址表，然而随着企业规模的不断扩张，文档的维护将日趋繁重，任何一项需手动操作的工作都可能成为压死骆驼的最后一根稻草。</p>
+</li>
+<li><p><strong>配置烦琐</strong>，静态IP地址的配置除了IP地址外，还有子网掩码、默认网关、DNS服务器等内容，这些都是相对专业的术语，许多用户需要寻求网管的帮助才能配置成功，这项工作又繁琐又无成就感，久而久之无疑会令网络管理员产生一种挫败感。</p>
+</li>
+<li><p><strong>扩展性差</strong>，IT架构经常因企业的发展而发生变化，IP地址需要重新规划几率很大，一旦企业的发展需要对IP地址重新调整，那对IT部门而言将是一场噩梦，业务和时间的压力会让网络管理员们乱成一群热锅上的蚂蚁，他们将为整个企业的用户端配置静态IP地址而疲于奔命。</p>
+</li>
+</ol>
+<p>DHCP协议正是为了解决上述问题而诞生的，它全称是dynamic host configuration Protocol （动态主机配置协议），DHCP服务器通过该协议与计算机客户端进行交互，最终将分配一个动态IP地址给客户端。</p>
+<p>DHCP服务器可以从IP地址池中将一个空闲IP分配给一台DHCP客户端，当客户端不用的时候就回收待用。在分配IP地址的同时还携带了子网掩码、默认网关、DNS和WINS服务器的IP地址，这样不仅拯救网管于水深火热之中，还极大降低了IP地址冲突的几率。</p>
+<h1>DNS基本知识</h1>
+<p>DNS主机类型</p>
+<ul>
+<li><strong>authorize</strong></li>
+<li><strong>forward</strong></li>
+<li><strong>cache</strong></li>
+</ul>
+<p>DHCP的工作原理跟读者去图书馆借书的流程很相似：读者来图书馆借书，到期归还，也可以续借，所以在不同的时间段里，同一本书籍将会在不同的读者手中被阅读。相类似的，IP地址相当于书籍，DHCP服务器相当于图书馆，而DHCP客户端则相当于读者。客户端向服务器申请IP地址，服务器根据策略分配一个未用的IP地址给他，逾期不续借则将IP地址回收，准备分配给下一台计算机。</p>
+<p>读者可能会问这样一个问题，当PC还没有IP地址的情况下，如何跟DHCP服务器进行通信？原来PC首先会发出一个DHCP discovery的广播包，DHCP服务器收到后，根据策略为其分配一个空闲的IP地址，工作步骤如下图所示：</p>
+<img src="http://dl.linuxabc.net.cn/u/74911209/octopress/2011-06-27_dhcp-interaction.jpg" class="center" title="DHCP交互流程图" alt="DHCP交互流程图">
+
+
+<p>了解了DHCP的工作原理后，接下来让我们来看看在Debian中都有哪些相关的软件包。</p>
+<h1>三、DNS服务端</h1>
+<ul>
+<li><strong>nsd</strong>，DNS授权服务器守护进程；</li>
+<li><strong>unbound</strong>，DNS前转服务器和缓存服务器。</li>
+</ul>
+<h2>3.1 nsd</h2>
+<h3>3.1.1 安装</h3>
+<p>$ sudo aptitude install nsd</p>
+<h3>3.1.2 配置</h3>
+<p>$ sudo vim /etc/nsd.conf</p>
+<p>$ sudo vim /etc/linuxabc.net.cn.forward</p>
+<p>$ sudo vim /etc/linuxabc.net.cn.reverse</p>
+<h3>3.1.3 操作</h3>
+<p>$ sudo nsdc rebuild<br>$ sudo nsdc reload<br>$ sudo nsdc restart</p>
+<p>随机启动<br>重启</p>
+<h2>3.2 unbound</h2>
+<h3>3.2.1 安装</h3>
+<h3>3.2.2 配置</h3>
+<h3>3.2.3 启动</h3>
+<p>实际应用场景</p>
+<p>通过两台DNS服务器向公众提供服务</p>
+
+      
+    </div>
+    <footer>
+      
+        
+  
+  <div class="categories">
+    <a href="/categories/dns/">dns</a>, <a href="/categories/dns/debian/">debian</a>
+  </div>
+
+        
+        
+  <div class="addthis addthis_toolbox addthis_default_style">
+    
+      <a class="addthis_button_facebook_like" fb:like:layout="button_count"></a>
+    
+    
+      <a class="addthis_button_tweet"></a>
+    
+    
+      <a class="addthis_button_google_plusone" g:plusone:size="medium"></a>
+    
+    
+      <a class="addthis_button_pinterest_pinit" pi:pinit:layout="horizontal"></a>
+    
+    <a class="addthis_counter addthis_pill_style"></a>
+  </div>
+  <script type="text/javascript" src="//s7.addthis.com/js/300/addthis_widget.js"></script>
+
+      
+      <div class="clearfix"></div>
+    </footer>
+  </div>
+</article>
+
+</div></div>
+    <aside id="sidebar" class="alignright">
+  <div class="search">
+  <form action="//google.com/search" method="get" accept-charset="utf-8">
+    <input type="search" name="q" results="0" placeholder="Search">
+    <input type="hidden" name="q" value="site:ioiioi.github.com">
+  </form>
+</div>
+
+  
+<div class="widget tag">
+  <h3 class="title">Categories</h3>
+  <ul class="entry">
+  
+    <li><a href="/categories/RouterOS/MikroTik/">MikroTik</a><small>2</small></li>
+  
+    <li><a href="/categories/RouterBOARD/">RouterBOARD</a><small>1</small></li>
+  
+    <li><a href="/categories/RouterOS/">RouterOS</a><small>4</small></li>
+  
+    <li><a href="/categories/VPS/">VPS</a><small>1</small></li>
+  
+    <li><a href="/categories/openwrt/ap/">ap</a><small>1</small></li>
+  
+    <li><a href="/categories/confluence/">confluence</a><small>1</small></li>
+  
+    <li><a href="/categories/debian/">debian</a><small>12</small></li>
+  
+    <li><a href="/categories/dhcp/debian/">debian</a><small>1</small></li>
+  
+    <li><a href="/categories/dns/debian/">debian</a><small>1</small></li>
+  
+    <li><a href="/categories/ldap/debian/">debian</a><small>1</small></li>
+  
+    <li><a href="/categories/dhcp/">dhcp</a><small>1</small></li>
+  
+    <li><a href="/categories/dns/">dns</a><small>1</small></li>
+  
+    <li><a href="/categories/debian/domU/">domU</a><small>1</small></li>
+  
+    <li><a href="/categories/ubuntu/domU/">domU</a><small>1</small></li>
+  
+    <li><a href="/categories/embeded/">embeded</a><small>1</small></li>
+  
+    <li><a href="/categories/freebsd/">freebsd</a><small>1</small></li>
+  
+    <li><a href="/categories/illumos/">illumos</a><small>1</small></li>
+  
+    <li><a href="/categories/iptable/">iptable</a><small>1</small></li>
+  
+    <li><a href="/categories/virtualization/iscsi/">iscsi</a><small>1</small></li>
+  
+    <li><a href="/categories/xen/kvm/">kvm</a><small>1</small></li>
+  
+    <li><a href="/categories/kvm/">kvm</a><small>1</small></li>
+  
+    <li><a href="/categories/network/ldap/">ldap</a><small>1</small></li>
+  
+    <li><a href="/categories/ldap/">ldap</a><small>1</small></li>
+  
+    <li><a href="/categories/openwrt/linksys/">linksys</a><small>1</small></li>
+  
+    <li><a href="/categories/linux/">linux</a><small>1</small></li>
+  
+    <li><a href="/categories/linux/netbsd/">netbsd</a><small>1</small></li>
+  
+    <li><a href="/categories/openbsd/netmgmt/">netmgmt</a><small>1</small></li>
+  
+    <li><a href="/categories/openwrt/vpn/network/">network</a><small>1</small></li>
+  
+    <li><a href="/categories/debian/network/">network</a><small>2</small></li>
+  
+    <li><a href="/categories/network/">network</a><small>3</small></li>
+  
+    <li><a href="/categories/networking/">networking</a><small>1</small></li>
+  
+    <li><a href="/categories/nexenta/">nexenta</a><small>4</small></li>
+  
+    <li><a href="/categories/octopress/">octopress</a><small>3</small></li>
+  
+    <li><a href="/categories/debian/octopress/">octopress</a><small>2</small></li>
+  
+    <li><a href="/categories/openSUSE/">openSUSE</a><small>2</small></li>
+  
+    <li><a href="/categories/openbsd/">openbsd</a><small>8</small></li>
+  
+    <li><a href="/categories/openbsd openntpd/">openbsd openntpd</a><small>1</small></li>
+  
+    <li><a href="/categories/openwrt/">openwrt</a><small>4</small></li>
+  
+    <li><a href="/categories/others/">others</a><small>1</small></li>
+  
+    <li><a href="/categories/seafile/">seafile</a><small>1</small></li>
+  
+    <li><a href="/categories/seafile/services/">services</a><small>1</small></li>
+  
+    <li><a href="/categories/linux/netbsd/solaris/">solaris</a><small>1</small></li>
+  
+    <li><a href="/categories/RouterBOARD/solaris11/">solaris11</a><small>1</small></li>
+  
+    <li><a href="/categories/solaris11/">solaris11</a><small>1</small></li>
+  
+    <li><a href="/categories/tech/">tech</a><small>1</small></li>
+  
+    <li><a href="/categories/tech/tips/">tips</a><small>1</small></li>
+  
+    <li><a href="/categories/ubuntu/">ubuntu</a><small>1</small></li>
+  
+    <li><a href="/categories/vim/">vim</a><small>1</small></li>
+  
+    <li><a href="/categories/windows/virtualbox/">virtualbox</a><small>1</small></li>
+  
+    <li><a href="/categories/virtualbox/">virtualbox</a><small>5</small></li>
+  
+    <li><a href="/categories/debian/virtualbox/">virtualbox</a><small>1</small></li>
+  
+    <li><a href="/categories/virtualization/">virtualization</a><small>2</small></li>
+  
+    <li><a href="/categories/kvm/virtualization/">virtualization</a><small>1</small></li>
+  
+    <li><a href="/categories/openwrt/vpn/">vpn</a><small>1</small></li>
+  
+    <li><a href="/categories/vpn/">vpn</a><small>1</small></li>
+  
+    <li><a href="/categories/windows/">windows</a><small>1</small></li>
+  
+    <li><a href="/categories/virtualization/xen/">xen</a><small>1</small></li>
+  
+    <li><a href="/categories/ubuntu/domU/xen/">xen</a><small>1</small></li>
+  
+    <li><a href="/categories/xen/">xen</a><small>2</small></li>
+  
+    <li><a href="/categories/debian/domU/xen/">xen</a><small>1</small></li>
+  
+    <li><a href="/categories/illumos/zfs/">zfs</a><small>1</small></li>
+  
+    <li><a href="/categories/xen/kvm/虚拟化/">虚拟化</a><small>1</small></li>
+  
+  </ul>
+</div>
+
+
+  
+</aside>
+    <div class="clearfix"></div>
+  </div>
+  <footer id="footer" class="inner"><div class="alignleft">
+  
+  &copy; 2013 alfie chan
+  
+</div>
+<div class="clearfix"></div></footer>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
+<script src="/js/jquery.imagesloaded.min.js"></script>
+<script src="/js/gallery.js"></script>
+
+
+
+
+<link rel="stylesheet" href="/fancybox/jquery.fancybox.css" media="screen" type="text/css">
+<script src="/fancybox/jquery.fancybox.pack.js"></script>
+<script type="text/javascript">
+(function($){
+  $('.fancybox').fancybox();
+})(jQuery);
+</script>
+
+</body>
+</html>

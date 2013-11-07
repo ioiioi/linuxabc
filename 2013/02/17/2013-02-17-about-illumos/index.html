@@ -1,0 +1,297 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta charset="utf-8">
+  
+  <title>ZFS的发展史 | linuxabc</title>
+  <meta name="author" content="alfie chan">
+  
+  <meta name="description" content="两年前，我在选择产品实验室的存储服务器时对ZFS做了一些研究，发现ZFS及其衍生OS的发展很有趣，于是记下来作为大家茶余饭后的谈资。
+两年前，我需要一个容量为10T的存储，然而预算仅5万，采购硬件存储是不可能的了，请教google大神后发现了ZFS，这是ZFS第一次进入我的眼帘。再进一步了解后发现，">
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+  <meta property="og:title" content="ZFS的发展史"/>
+  <meta property="og:site_name" content="linuxabc"/>
+
+  
+    <meta property="og:image" content="undefined"/>
+  
+
+  <link href="/favicon.png" rel="icon">
+  <link rel="alternate" href="/atom.xml" title="linuxabc" type="application/atom+xml">
+  <link rel="stylesheet" href="/css/style.css" media="screen" type="text/css">
+  <!--[if lt IE 9]><script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script><![endif]-->
+  
+</head>
+
+
+<body>
+  <header id="header" class="inner"><div class="alignleft">
+  <h1><a href="/">linuxabc</a></h1>
+  <h2><a href="/">focus on security, network management and embeded OS</a></h2>
+</div>
+<nav id="main-nav" class="alignright">
+  <ul>
+    
+      <li><a href="/">Home</a></li>
+    
+      <li><a href="/archives">Archives</a></li>
+    
+  </ul>
+  <div class="clearfix"></div>
+</nav>
+<div class="clearfix"></div></header>
+  <div id="content" class="inner">
+    <div id="main-col" class="alignleft"><div id="wrapper"><article class="post">
+  
+  <div class="post-content">
+    <header>
+      
+        <div class="icon"></div>
+        <time datetime="2013-02-17T07:00:00.000Z"><a href="/2013/02/17/2013-02-17-about-illumos/">2013-02-17</a></time>
+      
+      
+  
+    <h1 class="title">ZFS的发展史</h1>
+  
+
+    </header>
+    <div class="entry">
+      
+        <p>两年前，我在选择产品实验室的存储服务器时对ZFS做了一些研究，发现ZFS及其衍生OS的发展很有趣，于是记下来作为大家茶余饭后的谈资。</p>
+<p>两年前，我需要一个容量为10T的存储，然而预算仅5万，采购硬件存储是不可能的了，请教google大神后发现了ZFS，这是ZFS第一次进入我的眼帘。再进一步了解后发现，ZFS（the last word in file system）的名字真是取对了，诚不欺我也。</p>
+<blockquote>
+<p>ZFS 文件系统是一个革命性的全新的文件系统，它从根本上改变了文件系统的管理方式，这个文件系统的特色和其带来的好处至今没有其他文件系统可以与之媲美，ZFS 被设计成强大的、可升级并易于管理的。<br>ZFS 用“存储池”的概念来管理物理存储空间。过去，文件系统都是构建在物理设备之上的。为了管理这些物理设备，并为数据提供冗余，“卷管理”的概念提供了一个单设备的映像。但是这种设计增加了复杂性，同时根本没法使文件系统向更高层次发展，因为文件系统不能跨越数据的物理位置。<br>ZFS 完全抛弃了“卷管理”，不再创建虚拟的卷，而是把所有设备集中到一个存储池中来进行管理！“存储池”描述了存储的物理特征（设备的布局，数据的冗余等等），并扮演一个能够创建文件系统的专门存储空间。从此，文件系统不再局限于单独的物理设备，而且文件系统还允许物理设备把他们自带的那些文件系统共享到这个“池”中。你也不再需要预先规划好文件系统的大小，因为文件系统可以在“池”的空间内自动的增大。当增加新的存贮介质时，所有“池”中的所有文件系统能立即使用新增的空间，而不需要而外的操作。在很多情况下，存储池扮演了一个虚拟内存。</p>
+</blockquote>
+<p>在这里我就偷下懒，直接引用了百度百科。</p>
+<p>ZFS就是一块瑰宝，被世人忽视，的发迹于solaris，sun公司曾于2005年开源了solaris，取名为opensolaris，那时其它开源社区已经有很多人垂涎于其ZFS，FreeBSD开发者也将其移植过来，Linux开发者则系统通过FUSE的方式引入，不过这两者在当时都不成气候，特别是linux的ZFS，由于跑在userland，其性能根本无法匹敌。<br>oracle收购了sun之后，又将solaris闭源了，开源社区对此大势抨击，我倒觉得无此必要，毕竟Oracle还有那么多工程师要养活，收购过来的资产不能变现，Oracle又不是慈善机构，凭什么要免费提供这么优质的软件？</p>
+<p>另一帮人则看到了商机，于是诞生了nexenta、smartos这样的产品，其中nexenta是debian+zfs的混种，本质上还是solaris，只不过用了apt方式管理软件包。这是第一个成功打入市场的产品，拥有ZFS全部的优秀品质，同时套了层漂亮的webui，也获得不少青睐，最要命的是可以免费使用，唯一的限制是18T。<br>另一个公司joynet，说起这个公司也不简单，node.js就出自该公司的手笔，它的光芒掩盖了joynet公司的另一项主营业务：VPS，joynet搜罗了不少sun的工程师，sun的工程师真是有骨气，他们为了信念而工作，拥有工程师气质的sun为我们奉献了solaris、dtrace、zfs、java、nfs等等脍炙人口的作品，可惜的是最终还是陨落了。不仅仅是为了面包，至少java的高司令便是如此，首席工程师于2010年将KVM移植到了illious，从此，SmartOS诞生了，它具有以下的优点：</p>
+<ul>
+<li>ZFS</li>
+<li>KVM</li>
+<li>container</li>
+<li>DTrace</li>
+</ul>
+<h2>ZFS on illumos</h2>
+<p>Oracle买了SUN之后，开源社区遭受了一系列的打击，MySQL社区四分五裂，OpenSolaris被无情的抛弃，OpenOffice核心开发人员纷纷出逃。最令人不齿的是，Oracle将redhat enterprise linux的logo改一下，就推出了oracle enterprise linux，见过无耻的，没见过这么无耻的！所以Oracle在开源社区眼中就是一坨屎，不过我觉得应该从另一个角度来看待问题，SUN公司拥有一群优秀的工程师，他们具有独特的浪漫主义情怀，给IT界带来了很多耳目一新的创新技术，但浪漫主义不能当饭吃，特别是SUN公司持续亏本，企业的根本目标就是盈利。一些无法带来收益的产品能砍则砍。最终还是会走向根本养活不了具有浪漫主义情怀福兮祸兮，SUN的工程师也纷纷出逃，最终流向了joyent、nexenta、OmniIT开发者信心尽失</p>
+<p>每一项技术仿佛都是为了VPS而生，因此SmartOS广告语是“”。<br>我尚未测试该OS的性能和稳定性，不过国内已经有一家创业型VPS用了该技术。<br>就像Linux一样，illumos以惊人的速度发展着，然而历史是如此的相似，Linux的发行版众多，illious社区也陷入的同样的怪圈，统一内核，发行版就由众多开源社区进行维护吧。<br>截至到目前为止，共有openindiana、smartos、omnios、nexenta等多种发行版，与linux不同的是，linux内核由linus一个人说了算，然而illous的开发则受到其赞助商的左右，翻开官网就会看到、joyent、nexenta是背后的。<br>linux和illous这两种不同的开发模式，孰优孰劣只能留待历史进行评判，不过它告诉了我们一个真理，没钱的活没人干，至少干不好。</p>
+<p>Joyent、nexenta、OmniTI等</p>
+<h2>ZFS on linux</h2>
+<p>ZFS在linux上衍生了多个版本，首个出现的是zfs-fuse，当时由于考虑到linux内核（GPL v2）和solaris（CDDL）所采用的开源协议有冲突，zfs无法直接作为内核模块存在，因此出现了zfs-fuse这种怪胎。由于zfs-fuse运行在userland下，速度极其缓慢，用户根本无法接受，因而zfs-fuse 0.7.0自2011年发布之后，就没有然后了。</p>
+<p>很快，linux界找到突破口，CDDL只是不允许ZFS以二进制内核模块发布而已，那就换成源代码方式发行，用户自行编译。这就是zfs on linux(<a href="http://zfsonlinux.org/)，官网的第一句话是“The" target="_blank">http://zfsonlinux.org/)，官网的第一句话是“The</a> native Linux kernel port of the ZFS filesystem”，目前的开发还算比较活跃，只是相比起illumos还是差了很多。</p>
+<p>不过我可以断定ZFS在linux上不会得到长足的发展，一方面，ZFS在illumos上的开发势头很猛，运行稳定，另一方面，linux上还有brtfs，一个同样具有野心的文件系统，它的重要功能跟ZFS非常相似，在Oracle的支持下也发展得如火如荼，如不出意外将发展成为linux版的ZFS。所以说ZFS在linux上不会有突破性的进展。我想不通的是，Oracle既支持zfs，又支持brtfs，不知用意何在。</p>
+<p>参考(<a href="http://etbe.coker.com.au/2012/04/17/zfs-btrfs-cheap-servers/" target="_blank">http://etbe.coker.com.au/2012/04/17/zfs-btrfs-cheap-servers/</a>)</p>
+<h2>ZFS on BSD</h2>
+<p>FreeBSD是首个移植zfs的BSD发行版，也许跟SUN的关系不错，ZFS on FreeBSD的性能和稳定性都不错，倒了9.1版已经可用于生产环境。甚至ixsystem公司在FreeBSD的基础上开发了FreeNAS，一个以ZFS为卖点的存储操作系统，它跟nexenta的区别是，FreeNAS是免费的，没有容量限制。熟悉FreeBSD的兄弟可以尝试使用FreeNAS。</p>
+<p>netbsd的zfs port自2009年开始，但是进展非常缓慢。netbsd社区2012年的筹款计划是6万，然而仅筹到1.5万，所以对于zfs on netbsd的未来就不必抱太大的希望了吧。虽然我很喜欢netbsd的简洁、干净。</p>
+<p>OpenBSD的BOSS说：“OpenBSD只关注安全和稳定性，其它的功能特性靠边站。”，所以OpenBSD中鼎鼎有名的pf到现在都还不支持多核，更何况zfs这种新兴的技术。so forget about it。</p>
+<p>“停，你以为你谁啊！说了那么多到底该选哪个？”有些观众估计已经开始脱鞋了。<br>说实在话，我也不知道该选哪个，这绝不是忽悠，因为目前的状态实在是太混乱了。我斗胆做了以下的选择建议：<br>纯粹的storage：solaris11，solaris11的ZFS版本已经发展到了v34，ilmous因为它才是ZFS的正宗，瘦死的骆驼比马大<br>云计算OS：smartos，该公司的另一项主营业务就是VPS，它不能拿命根子开玩笑<br>FreeNAS vs nexenta，如果真要在这两者之间做一个选择的话，那还是nexenta吧，毕竟</p>
+<p>它获得了很大的市场，而且依赖着illous这颗大树，FreeBSD的ZFS前景我觉得并不容乐观。<br>其它的，暂时还是忘了吧。</p>
+<p>或许只能用阴谋论才能很好地解释这种骨肉相残的行为。眼看着Oracle DB的市场份额不断地被MySQL瓜分，于是Oracle收购了sun（MySQL的母公司），并慢慢将MySQL推向闭源。你若爱它，便收购它，因为这是强强联手，你若恨它，也收购它，这样可以斩草除根。真他娘的狠！果然，用户纷纷逃离。然而，IT类网站的统计数据表明，用户并未拥抱Oracle DB这个白富美，而是走向了PostgreSQL、MariaDB、Percona这些矮穷挫。估计Oracle要哭了</p>
+
+      
+    </div>
+    <footer>
+      
+        
+  
+  <div class="categories">
+    <a href="/categories/illumos/">illumos</a>, <a href="/categories/illumos/zfs/">zfs</a>
+  </div>
+
+        
+        
+  <div class="addthis addthis_toolbox addthis_default_style">
+    
+      <a class="addthis_button_facebook_like" fb:like:layout="button_count"></a>
+    
+    
+      <a class="addthis_button_tweet"></a>
+    
+    
+      <a class="addthis_button_google_plusone" g:plusone:size="medium"></a>
+    
+    
+      <a class="addthis_button_pinterest_pinit" pi:pinit:layout="horizontal"></a>
+    
+    <a class="addthis_counter addthis_pill_style"></a>
+  </div>
+  <script type="text/javascript" src="//s7.addthis.com/js/300/addthis_widget.js"></script>
+
+      
+      <div class="clearfix"></div>
+    </footer>
+  </div>
+</article>
+
+</div></div>
+    <aside id="sidebar" class="alignright">
+  <div class="search">
+  <form action="//google.com/search" method="get" accept-charset="utf-8">
+    <input type="search" name="q" results="0" placeholder="Search">
+    <input type="hidden" name="q" value="site:ioiioi.github.com">
+  </form>
+</div>
+
+  
+<div class="widget tag">
+  <h3 class="title">Categories</h3>
+  <ul class="entry">
+  
+    <li><a href="/categories/RouterOS/MikroTik/">MikroTik</a><small>2</small></li>
+  
+    <li><a href="/categories/RouterBOARD/">RouterBOARD</a><small>1</small></li>
+  
+    <li><a href="/categories/RouterOS/">RouterOS</a><small>4</small></li>
+  
+    <li><a href="/categories/VPS/">VPS</a><small>1</small></li>
+  
+    <li><a href="/categories/openwrt/ap/">ap</a><small>1</small></li>
+  
+    <li><a href="/categories/confluence/">confluence</a><small>1</small></li>
+  
+    <li><a href="/categories/debian/">debian</a><small>12</small></li>
+  
+    <li><a href="/categories/dhcp/debian/">debian</a><small>1</small></li>
+  
+    <li><a href="/categories/dns/debian/">debian</a><small>1</small></li>
+  
+    <li><a href="/categories/ldap/debian/">debian</a><small>1</small></li>
+  
+    <li><a href="/categories/dhcp/">dhcp</a><small>1</small></li>
+  
+    <li><a href="/categories/dns/">dns</a><small>1</small></li>
+  
+    <li><a href="/categories/debian/domU/">domU</a><small>1</small></li>
+  
+    <li><a href="/categories/ubuntu/domU/">domU</a><small>1</small></li>
+  
+    <li><a href="/categories/embeded/">embeded</a><small>1</small></li>
+  
+    <li><a href="/categories/freebsd/">freebsd</a><small>1</small></li>
+  
+    <li><a href="/categories/illumos/">illumos</a><small>1</small></li>
+  
+    <li><a href="/categories/iptable/">iptable</a><small>1</small></li>
+  
+    <li><a href="/categories/virtualization/iscsi/">iscsi</a><small>1</small></li>
+  
+    <li><a href="/categories/xen/kvm/">kvm</a><small>1</small></li>
+  
+    <li><a href="/categories/kvm/">kvm</a><small>1</small></li>
+  
+    <li><a href="/categories/network/ldap/">ldap</a><small>1</small></li>
+  
+    <li><a href="/categories/ldap/">ldap</a><small>1</small></li>
+  
+    <li><a href="/categories/openwrt/linksys/">linksys</a><small>1</small></li>
+  
+    <li><a href="/categories/linux/">linux</a><small>1</small></li>
+  
+    <li><a href="/categories/linux/netbsd/">netbsd</a><small>1</small></li>
+  
+    <li><a href="/categories/openbsd/netmgmt/">netmgmt</a><small>1</small></li>
+  
+    <li><a href="/categories/openwrt/vpn/network/">network</a><small>1</small></li>
+  
+    <li><a href="/categories/debian/network/">network</a><small>2</small></li>
+  
+    <li><a href="/categories/network/">network</a><small>3</small></li>
+  
+    <li><a href="/categories/networking/">networking</a><small>1</small></li>
+  
+    <li><a href="/categories/nexenta/">nexenta</a><small>4</small></li>
+  
+    <li><a href="/categories/octopress/">octopress</a><small>3</small></li>
+  
+    <li><a href="/categories/debian/octopress/">octopress</a><small>2</small></li>
+  
+    <li><a href="/categories/openSUSE/">openSUSE</a><small>2</small></li>
+  
+    <li><a href="/categories/openbsd/">openbsd</a><small>8</small></li>
+  
+    <li><a href="/categories/openbsd openntpd/">openbsd openntpd</a><small>1</small></li>
+  
+    <li><a href="/categories/openwrt/">openwrt</a><small>4</small></li>
+  
+    <li><a href="/categories/others/">others</a><small>1</small></li>
+  
+    <li><a href="/categories/seafile/">seafile</a><small>1</small></li>
+  
+    <li><a href="/categories/seafile/services/">services</a><small>1</small></li>
+  
+    <li><a href="/categories/linux/netbsd/solaris/">solaris</a><small>1</small></li>
+  
+    <li><a href="/categories/RouterBOARD/solaris11/">solaris11</a><small>1</small></li>
+  
+    <li><a href="/categories/solaris11/">solaris11</a><small>1</small></li>
+  
+    <li><a href="/categories/tech/">tech</a><small>1</small></li>
+  
+    <li><a href="/categories/tech/tips/">tips</a><small>1</small></li>
+  
+    <li><a href="/categories/ubuntu/">ubuntu</a><small>1</small></li>
+  
+    <li><a href="/categories/vim/">vim</a><small>1</small></li>
+  
+    <li><a href="/categories/windows/virtualbox/">virtualbox</a><small>1</small></li>
+  
+    <li><a href="/categories/virtualbox/">virtualbox</a><small>5</small></li>
+  
+    <li><a href="/categories/debian/virtualbox/">virtualbox</a><small>1</small></li>
+  
+    <li><a href="/categories/virtualization/">virtualization</a><small>2</small></li>
+  
+    <li><a href="/categories/kvm/virtualization/">virtualization</a><small>1</small></li>
+  
+    <li><a href="/categories/openwrt/vpn/">vpn</a><small>1</small></li>
+  
+    <li><a href="/categories/vpn/">vpn</a><small>1</small></li>
+  
+    <li><a href="/categories/windows/">windows</a><small>1</small></li>
+  
+    <li><a href="/categories/virtualization/xen/">xen</a><small>1</small></li>
+  
+    <li><a href="/categories/ubuntu/domU/xen/">xen</a><small>1</small></li>
+  
+    <li><a href="/categories/xen/">xen</a><small>2</small></li>
+  
+    <li><a href="/categories/debian/domU/xen/">xen</a><small>1</small></li>
+  
+    <li><a href="/categories/illumos/zfs/">zfs</a><small>1</small></li>
+  
+    <li><a href="/categories/xen/kvm/虚拟化/">虚拟化</a><small>1</small></li>
+  
+  </ul>
+</div>
+
+
+  
+</aside>
+    <div class="clearfix"></div>
+  </div>
+  <footer id="footer" class="inner"><div class="alignleft">
+  
+  &copy; 2013 alfie chan
+  
+</div>
+<div class="clearfix"></div></footer>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
+<script src="/js/jquery.imagesloaded.min.js"></script>
+<script src="/js/gallery.js"></script>
+
+
+
+
+<link rel="stylesheet" href="/fancybox/jquery.fancybox.css" media="screen" type="text/css">
+<script src="/fancybox/jquery.fancybox.pack.js"></script>
+<script type="text/javascript">
+(function($){
+  $('.fancybox').fancybox();
+})(jQuery);
+</script>
+
+</body>
+</html>
