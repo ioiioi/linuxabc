@@ -11,9 +11,11 @@ openwrt\ 历史
 那为何市面上的无线路由器那么多，单就Linksys WRT54G就可以刷机呢？原因是Linux \ `ft_linux_kernel`_\ 。当WRT54G发布后，Andrew Miklas在\ `Linux kernel mailing list`_\
 宣称他发现WRT54G的firmware用了一些经过修改的linux的代码，但无法确定是哪部分。大家知道，linux是遵循gpl协议发布的软件，凡是在linux基础上进行修改的源代码都必须开源。虽然大家都不确定Linksy到底修改了哪部分linux，总之到了2003年7月，Linksys迫于公众的压力开源了WRT54G的firmware。这下子炸开了锅，一些hacker尝试着修改源代码，改善稳定性，甚至增加新的功能。第三方firmware如雨后春笋般冒了出来，从此，无线路由器进入了一个逢人必问：“你今天刷了吗？”的时代。
 
-到现在为止还没openwrt什么事，还请各位看官请稍安勿躁，这一段历史还是很有趣的，值得一提。当时比较有影响力的第三方firmware是一家叫做sveasoft公司所开发的Alchemy，然而这家公司也不地道，为了赚钱，它要求用户必须每年花20美元加入他们的社区后才能获取最新的源代码，于是又跟linux拥护者杠上了。2005年初，一个叫BrainSlayer的家伙fork Alchemy，加入一些新的功能特性，发布了一个新的发行版：DD-WRT。它不仅功能丰富，而且拥有友好的GUI，加上免费这个午餐吸引了大量用户，慢慢的sveasoft就没落了，就没有然后了。
+到现在为止还没openwrt什么事，还请各位看官请稍安勿躁，这一段历史还是很有趣的，值得一提。
 
-下面终于轮到openwrt出场了。openwrt也是同一时间出现的，但他的出场有些特别，按理说都是微创新\ `ft_openwrt_early_version`_\ ，至少要在原有基础上做一些修改工作，svealsoft和dd-wrt，hyperwrt和tomato均如此，但openwrt另辟蹊径，推出第一版之后，推倒重来，采用buildroot重新打造一个全新的firmware，这需要很大的勇气，好在大家都是义务帮忙，大不了就废了，不成想，这一决定成就了openwrt，不破不立，古人诚不欺我。
+当时比较有影响力的第三方firmware是一家叫做sveasoft公司所开发的Alchemy，然而这家公司也不地道，为了赚钱，它要求用户必须每年花20美元加入他们的社区后才能获取最新的源代码，于是又跟linux拥护者杠上了。2005年初，一个叫BrainSlayer的家伙fork Alchemy，加入一些新的功能特性，发布了一个新的发行版：DD-WRT。它不仅功能丰富，而且拥有友好的GUI，加上免费这个午餐吸引了大量用户，慢慢的sveasoft就没落了，然后，就没有然后了。
+
+下面终于轮到openwrt出场了。openwrt也是同一时间出现的，但他的出场有些特别，就像大多数帝王将相的出生一样，天空中必是一道闪电或者霞光，凸显出它的不凡，openwrt也不例外，按理说都是微创新\ `ft_openwrt_early_version`_\ ，至少要在原有基础上做一些修改工作，svealsoft和dd-wrt，hyperwrt和tomato均如此，但openwrt另辟蹊径，推出第一版之后，推倒重来，采用buildroot重新打造一个全新的firmware，这需要很大的勇气，好在大家都是义务帮忙，大不了就废了，不成想，这一决定成就了openwrt，不破不立，古人诚不欺我。
 
 相对于其它firmware，openwrt有以下优势：
 
